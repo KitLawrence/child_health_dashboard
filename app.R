@@ -8,6 +8,7 @@ library(purrr)
 library(stringr)
 library(lubridate)
 library(ggplot2)
+library(readr)
 
 library(labelled)
 library(data.table)
@@ -98,6 +99,18 @@ HSCPnames <- c("Aberdeen City HSCP", "Aberdeenshire HSCP", "Angus HSCP", "Argyll
                "Renfrewshire HSCP", "Scottish Borders HSCP", "Shetland Islands HSCP",
                "South Ayrshire HSCP", "South Lanarkshire HSCP", "West Dunbartonshire HSCP",
                "West Lothian HSCP", "Western Isles HSCP")
+
+
+domains <- read_csv("variable, title
+slc_perc, Speech, language & communication
+             prob_solv_perc, Problem solving
+             gross_motor_perc, Gross motor
+             per_soc_perc, Personal/Social
+             fine_motor_perc, Fine motor
+             emot_beh_perc, Emotional/Behavioural
+             vision_perc, Vision
+             hearing_perc, Hearing")
+
 
 filler_graph <- starwars |>
   filter(species == "Droid") |>
@@ -490,30 +503,30 @@ child_development <- tabItem(
                           plotOutput("development_numbers_plot", height = "300px")
                       )
                     ),
-                      
+                    
                     uiOutput("scotland_only")
-                      # box(width = 12,
-                      #     textOutput("development_concerns_by_domain_title"),
-                      #     plotOutput("development_concerns_by_domain_plot", height = "300px")
-                      # ),
-                      # 
-                      # box(width = 12,
-                      #     checkboxGroupButtons(
-                      #       inputId = "simd_levels",
-                      #       label = "Select which SIMD quintiles to show. \n
-                      #       This scale ranges from 1 being the most deprived to 5 being the least deprived.",
-                      #       choices = c(1:5),
-                      #       selected = c(1),
-                      #       status = "primary",
-                      #       checkIcon = list(
-                      #         yes = icon("square-check") |> rem_aria_label(),
-                      #         no = icon("square") |> rem_aria_label())
-                      #     ),
-                      #     textOutput("development_concerns_by_simd_title"),
-                      #     plotOutput("development_concerns_by_simd_plot", height = "300px")
-                      # )
-                      
-                      
+                    # box(width = 12,
+                    #     textOutput("development_concerns_by_domain_title"),
+                    #     plotOutput("development_concerns_by_domain_plot", height = "300px")
+                    # ),
+                    # 
+                    # box(width = 12,
+                    #     checkboxGroupButtons(
+                    #       inputId = "simd_levels",
+                    #       label = "Select which SIMD quintiles to show. \n
+                    #       This scale ranges from 1 being the most deprived to 5 being the least deprived.",
+                    #       choices = c(1:5),
+                    #       selected = c(1),
+                    #       status = "primary",
+                    #       checkIcon = list(
+                    #         yes = icon("square-check") |> rem_aria_label(),
+                    #         no = icon("square") |> rem_aria_label())
+                    #     ),
+                    #     textOutput("development_concerns_by_simd_title"),
+                    #     plotOutput("development_concerns_by_simd_plot", height = "300px")
+                    # )
+                    
+                    
                     
                     
            ), #tabPanel ("Charts")
@@ -807,6 +820,7 @@ server <- function(input, output, session) {
       pivot_longer(cols = slc_perc:hearing_perc,
                    names_to = "category",
                    values_to = "number") |>
+      filter(category %in% input$domains_selected) |>
       ggplot(aes(x = month_review, y = number, color = category)) +
       geom_line()
   })
@@ -832,25 +846,38 @@ server <- function(input, output, session) {
   })
   
   
+  
+  #Scotland Only Section of UI ----
   output$scotland_only <- renderUI({
     if (input$geog_level == "All Scotland") {
       fluidRow(
         box(width = 12,
-           textOutput("development_concerns_by_domain_title"),
-           plotOutput("development_concerns_by_domain_plot", height = "300px")
-       ),
-    
-       box(width = 12,
+            checkboxGroupButtons(
+              inputId = "domains_selected",
+              label = "Select which domains to include in the plot:",
+              choiceNames = domains$title,
+              choiceValues = domains$variable,
+              selected = domains$variable,
+              status = "primary",
+              checkIcon = list(
+                yes = icon("square-check") |> rem_aria_label(),
+                no = icon("square") |> rem_aria_label())
+            ),
+            textOutput("development_concerns_by_domain_title"),
+            plotOutput("development_concerns_by_domain_plot", height = "300px")
+        ),
+        
+        box(width = 12,
             checkboxGroupButtons(
               inputId = "simd_levels",
               label = "Select which SIMD quintiles to show.
                       This scale ranges from 1 being the most deprived to 5 being the least deprived.",
               choices = c(1:5),
-              selected = c(1),
+              selected = c(1, 5),
               status = "primary",
               checkIcon = list(
-              yes = icon("square-check") |> rem_aria_label(),
-              no = icon("square") |> rem_aria_label())
+                yes = icon("square-check") |> rem_aria_label(),
+                no = icon("square") |> rem_aria_label())
             ),
             textOutput("development_concerns_by_simd_title"),
             plotOutput("development_concerns_by_simd_plot", height = "300px")
