@@ -112,16 +112,10 @@ slc_perc, Speech, language & communication
              hearing_perc, Hearing")
 
 
-filler_graph <- starwars |>
-  filter(species == "Droid") |>
-  mutate(height = if_else(is.na(height), 1, height)) |>
-  ggplot(aes(x = name, y = height, fill = name)) +
-  geom_col() +
-  scale_fill_discrete(type = c("#F08E18", "#CDAE3B", "#5E5E5E", 
-                               "#1080F0", "#F30D0D", "#CA3636"))
 
 
-source("functions.R")
+
+
 
 
 
@@ -344,15 +338,18 @@ infant_feeding <- tabItem(
                     fluidRow(
                       box(width = 4, solidHeader = TRUE,
                           textOutput("perc_exclusive_breastfed_title"),
-                          plotOutput("perc_exclusive_breastfed_plot", height = "200px")
+                          plotOutput("perc_exclusive_breastfed_plot", height = "200px"),
+                          plotlyOutput("perc_exclusive_breastfed_plotly", height = "200px")
                       ),
                       box(width = 4, solidHeader = TRUE,
                           textOutput("perc_overall_breastfed_title"),
-                          plotOutput("perc_overall_breastfed_plot", height = "200px")
+                          plotOutput("perc_overall_breastfed_plot", height = "200px"),
+                          plotlyOutput("perc_overall_breastfed_plotly", height = "200px")
                       ),
                       box(width = 4, solidHeader = TRUE,
                           textOutput("perc_ever_breastfed_title"),
-                          plotOutput("perc_ever_breastfed_plot", height = "200px")
+                          plotOutput("perc_ever_breastfed_plot", height = "200px"),
+                          plotlyOutput("perc_ever_breastfed_plotly", height = "200px")
                       ),
                       
                       
@@ -379,7 +376,8 @@ infant_feeding <- tabItem(
                       
                       box(width = 12,
                           textOutput("feeding_numbers_title"),
-                          plotOutput("feeding_numbers_plot", height = "300px")
+                          plotOutput("feeding_numbers_plot", height = "300px"),
+                          plotlyOutput("feeding_numbers_plotly", height = "300px")
                       )
                     )
            ), #tabPanel ("Charts")
@@ -476,6 +474,7 @@ child_development <- tabItem(
                       box(width = 12, solidHeader = TRUE,
                           textOutput("development_percentage_concern_title"),
                           plotOutput("development_percentage_concern_plot", height = "300px"),
+                          plotlyOutput("development_percentage_concern_plotly", height = "300px"),
                           
                           p("We have used ‘run charts’ to present the data above. 
                           Run charts use a series of rules to help identify unusual 
@@ -500,7 +499,8 @@ child_development <- tabItem(
                       
                       box(width = 12,
                           textOutput("development_numbers_title"),
-                          plotOutput("development_numbers_plot", height = "300px")
+                          plotOutput("development_numbers_plot", height = "300px"),
+                          plotlyOutput("development_numbers_plotly", height = "300px")
                       )
                     ),
                     
@@ -739,6 +739,17 @@ server <- function(input, output, session) {
       ylim(0,100)
   })
   
+  output$perc_exclusive_breastfed_plotly <- renderPlotly({
+    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_excl")
+  })
+  
+  output$perc_overall_breastfed_plotly <- renderPlotly({
+    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_overall")
+  })
+  
+  output$perc_ever_breastfed_plotly <- renderPlotly({
+    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_ever")
+  })
   
   
   
@@ -762,6 +773,21 @@ server <- function(input, output, session) {
   })
   
   
+  output$feeding_numbers_plotly <- renderPlotly({
+    data <- dashboard_data[[input$feeding_data]] |>
+      filter(geography %in% geog_final()) |>
+      pivot_longer(cols = no_reviews:ever_bf,
+                   names_to = "category",
+                   values_to = "number")
+    
+    plot_ly(data = data,
+            x = ~ month_review,
+            y = ~ number,
+            type = "scatter",
+            mode = "lines",
+            linetype = ~ category)
+  })
+  
   
   #.----
   
@@ -782,6 +808,10 @@ server <- function(input, output, session) {
       ylim(0,40)
   })
   
+  output$development_percentage_concern_plotly <- renderPlotly({
+    create_runchart_plotly(dashboard_data[[input$development_data]], geog_final(), "pc_1_plus")
+  })
+  
   
   
   #Child Development Number of Reviews ----
@@ -800,8 +830,19 @@ server <- function(input, output, session) {
                    values_to = "number") |>
       ggplot(aes(x = month_review, y = number, color = category)) +
       geom_line()
-    
-    #filler_graph + labs(caption = "filler graph 6")
+  })
+  
+  output$development_numbers_plotly <- renderPlotly({
+    dashboard_data[[input$development_data]] |>
+      filter(geography %in% geog_final()) |>
+      pivot_longer(cols = no_reviews:concerns_1_plus,
+                   names_to = "category",
+                   values_to = "number") |>
+      plot_ly(x = ~ month_review,
+              y = ~ number,
+              type = "scatter",
+              mode = "lines",
+              linetype = ~ category)
   })
   
   
@@ -825,6 +866,19 @@ server <- function(input, output, session) {
       geom_line()
   })
   
+  output$development_concerns_by_domain_plotly <- renderPlotly({
+    dashboard_data[[paste0(input$development_data, "_domains")]] |>
+      filter(geography %in% geog_final()) |>
+      pivot_longer(cols = slc_perc:hearing_perc,
+                   names_to = "category",
+                   values_to = "number") |>
+      filter(category %in% input$domains_selected) |>
+      plot_ly(x = ~ month_review,
+              y = ~ number,
+              type = "scatter",
+              mode = "lines",
+              linetype = ~ category)
+  })
   
   
   
@@ -841,8 +895,16 @@ server <- function(input, output, session) {
       ggplot(aes(x = month_review, y = pc_1_plus, color = simd)) +
       ylim(0,30) +
       geom_line()
-    
-    #filler_graph + labs(caption = "filler graph 8")
+  })
+  
+  output$development_concerns_by_simd_plotly <- renderPlotly({
+    dashboard_data[[paste0(input$development_data, "_simd")]] |>
+      filter(geography %in% geog_final() & simd %in% input$simd_levels) |>
+      plot_ly(x = ~ month_review,
+              y = ~ pc_1_plus,
+              type = "scatter",
+              mode = "lines",
+              linetype = ~ simd)
   })
   
   
@@ -864,7 +926,8 @@ server <- function(input, output, session) {
                 no = icon("square") |> rem_aria_label())
             ),
             textOutput("development_concerns_by_domain_title"),
-            plotOutput("development_concerns_by_domain_plot", height = "300px")
+            plotOutput("development_concerns_by_domain_plot", height = "300px"),
+            plotlyOutput("development_concerns_by_domain_plotly", height = "300px")
         ),
         
         box(width = 12,
@@ -880,7 +943,8 @@ server <- function(input, output, session) {
                 no = icon("square") |> rem_aria_label())
             ),
             textOutput("development_concerns_by_simd_title"),
-            plotOutput("development_concerns_by_simd_plot", height = "300px")
+            plotOutput("development_concerns_by_simd_plot", height = "300px"),
+            plotlyOutput("development_concerns_by_simd_plotly", height = "300px")
         )
       )
     }

@@ -47,4 +47,18 @@ create_runchart <- function(dataset, geog, variable) {
 }
 
 
-#create_runchart(dashboard_data[["feeding_first_visit"]], "All Scotland", pc_excl)
+
+create_runchart_plotly <- function(dataset, geog, variable) {
+  dataset <- dataset |>
+    filter(geography %in% geog)
+  
+  plot_ly(data = dataset,
+          x =  ~ month_review,
+          y =  dataset[[variable]],
+          type = "scatter",
+          mode = "lines") |>
+    config(displayModeBar = FALSE)
+}
+
+
+
