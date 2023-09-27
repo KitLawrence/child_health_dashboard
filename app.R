@@ -40,7 +40,7 @@ source("functions.R")
 ##read in files ----
 
 #date must match the file name to read in
-extract_date <- "28thAugust2023"
+extract_date <- "25thSeptember2023"
 
 #create the file names using the extract date
 files <- paste0(extract_date,
@@ -154,29 +154,39 @@ sidebar <- dashboardSidebar(
   accessible_menu(    #function to please screen readers
     sidebarMenu(
       id = "menu",
+      
       menuItem("Home",
                tabName = "home",
                icon = icon("info-circle", verify_fa = FALSE) |> rem_aria_label(),
                selected = TRUE),
+      
       menuItem("Infant Feeding",
-               tabName = "infant_feeding",
-               icon = icon("person-breastfeeding", verify_fa = FALSE) |> rem_aria_label()),
+               icon = icon("person-breastfeeding", verify_fa = FALSE) |> rem_aria_label(),
+               menuSubItem("Charts",
+                           tabName = "feeding_charts",
+                           icon = shiny::icon("angle-double-right") |> rem_aria_label()),
+               menuSubItem("About this indicator",
+                           tabName = "feeding_about",
+                           icon = shiny::icon("angle-double-right") |> rem_aria_label())
+               ) |> rem_menu_aria_label(),
+      
       menuItem("Child Development",
-               tabName = "child_development",
-               icon = icon("children", verify_fa = FALSE) |> rem_aria_label())
+               icon = icon("children", verify_fa = FALSE) |> rem_aria_label(),
+               menuSubItem("Charts",
+                           tabName = "development_charts",
+                           icon = shiny::icon("angle-double-right") |> rem_aria_label()),
+               menuSubItem("About this indicator",
+                           tabName = "development_about",
+                           icon = shiny::icon("angle-double-right") |> rem_aria_label())
+      ) |> rem_menu_aria_label()
+      
     )    #sidebarMenu
   ),    #accessible_menu
   
   useShinyjs(),    #must be included to make javascript stuff happen
   
-  #widgets that allow control of outputs, in sidebar to make them global
-  radioButtons(
-    inputId = "geog_level",
-    label = "Select Geography Level to Display:",
-    choices = c("All Scotland", "Health Board", "HSCP"),
-    selected = "All Scotland"
-  ),
-  uiOutput("geog_select") # Board/HSCP name
+  #dev panel to track variables
+  verbatimTextOutput("testing")
 )
 
 
@@ -198,9 +208,10 @@ mytheme <- create_theme(
     width = "290px",
     dark_bg = "#9B4393", # background colour (not selected) = PHS-magenta
     dark_hover_bg = "#3F3685", # background colour (when hovering) = PHS-purple
-    dark_color = "#F5ECF4", # text colour (not selected) = white
+    dark_color = "#FFFFFF", # text colour (not selected) = white
     dark_hover_color = "#FFFFFF", #hover colour = white
-    dark_submenu_bg = "#9B4393" #sub-menu background colour = PHS-magenta
+    dark_submenu_bg = "#1E7F84", #sub-menu background colour = PHS-magenta-80
+    dark_submenu_color = "#FFFFFF" #sub-menu text color = white
   ),
   adminlte_global(
     content_bg = "#FFF",
@@ -230,6 +241,8 @@ home <- tabItem(
            tabPanel(title = "Welcome",
                     fluidRow(box(width = 11,
                                  solidHeader = TRUE,
+                                 uiOutput("test_home"),
+                                 uiOutput("test_home2"),
                                  h1("Welcome to the Child Health Dashboard"),
                                  p("This first page gives general detail. We have two indicators, listed in
                                  the two tabs on the left hand side."),
@@ -299,8 +312,8 @@ home <- tabItem(
 
 
 ##Infant Feeding ----
-infant_feeding <- tabItem(
-  tabName = "infant_feeding",
+feeding_charts <- tabItem(
+  tabName = "feeding_charts",
   fluidRow(
     tabBox(title = "Infant Feeding",
            # The id lets us use input$tabset00 on the server to find the current tab
@@ -308,47 +321,57 @@ infant_feeding <- tabItem(
            width = 12,
            height = "25px",
            
-           ###Charts ----
-           tabPanel(title = "Charts",
+           
+           fluidRow(
+             box(width = 5,
+                 radioGroupButtons(
+                   inputId = "feeding_data",
+                   label = "Select the data you want to explore:",
+                   choiceNames = list("Health Visitor first visit", "6-8 week review"),
+                   choiceValues = list("feeding_first_visit", "feeding_6_8_week_review"),
+                   selected = "feeding_first_visit",
+                   direction = "vertical",
+                   justified = TRUE,
+                   status = "primary",
+                   checkIcon = list(
+                     yes = icon("circle-check") |> rem_aria_label(),
+                     no = icon("circle") |> rem_aria_label())
+                 ) #radioGroupButtons
+             ), #box
+             box(width = 5, solidHeader = TRUE
+             ),
+             box(width = 2, solidHeader = TRUE,
+                 downloadButton("", 
+                                "Download data",
+                                icon = shiny::icon("download") |> rem_aria_label()
+                 ) 
+             )
+           ),
+           
+           
+           ###Runcharts ----
+           tabPanel(title = "Runcharts",
                     fluidRow(
-                      box(width = 6,
-                          radioGroupButtons(
-                            inputId = "feeding_data",
-                            label = "Select the data you want to explore:",
-                            choiceNames = list("Health Visitor first visit", "6-8 week review"),
-                            choiceValues = list("feeding_first_visit", "feeding_6_8_week_review"),
-                            selected = "feeding_first_visit",
-                            direction = "vertical",
-                            justified = TRUE,
-                            status = "primary",
-                            checkIcon = list(
-                              yes = icon("circle-check") |> rem_aria_label(),
-                              no = icon("circle") |> rem_aria_label())
-                          ) #radioGroupButtons
-                      ), #box
-                      box(width = 4, solidHeader = TRUE),
-                      box(width = 2, solidHeader = TRUE,
-                          downloadButton("", 
-                                         "Download data",
-                                         icon = shiny::icon("download") |> rem_aria_label()
-                          ) 
-                      ),
+                      box(width = 5,
+                          uiOutput("geog_level_select_feeding")
+                          ),
+                      box(width = 5, solidHeader = TRUE,
+                          uiOutput("geog_select_feeding")
+                          ),
+                      box(width = 2, solidHeader = TRUE)
                     ), #fluidRow
                     
                     fluidRow(
                       box(width = 4, solidHeader = TRUE,
                           textOutput("perc_exclusive_breastfed_title"),
-                          plotOutput("perc_exclusive_breastfed_plot", height = "200px"),
                           plotlyOutput("perc_exclusive_breastfed_plotly", height = "200px")
                       ),
                       box(width = 4, solidHeader = TRUE,
                           textOutput("perc_overall_breastfed_title"),
-                          plotOutput("perc_overall_breastfed_plot", height = "200px"),
                           plotlyOutput("perc_overall_breastfed_plotly", height = "200px")
                       ),
                       box(width = 4, solidHeader = TRUE,
                           textOutput("perc_ever_breastfed_title"),
-                          plotOutput("perc_ever_breastfed_plot", height = "200px"),
                           plotlyOutput("perc_ever_breastfed_plotly", height = "200px")
                       ),
                       
@@ -376,19 +399,54 @@ infant_feeding <- tabItem(
                       
                       box(width = 12,
                           textOutput("feeding_numbers_title"),
-                          plotOutput("feeding_numbers_plot", height = "300px"),
                           plotlyOutput("feeding_numbers_plotly", height = "300px")
                       )
                     )
-           ), #tabPanel ("Charts")
+           ), #tabPanel ("Runcharts")
            
            
-           ###About this indicator ----
+           
+           ###Comparisons ----
+           tabPanel(title = "Comparisons",
+                    fluidRow(
+                      box(width = 12, solidHeader = TRUE,
+                          radioGroupButtons(
+                            inputId = "geog_comparison_feeding",
+                            label = "Select geography level to compare:",
+                            choiceNames = list("Health Board", "Council Area"),
+                            choiceValues = list("NHS", "HSCP"),
+                            selected = "NHS",
+                            status = "primary",
+                            checkIcon = list(
+                              yes = icon("circle-check") |> rem_aria_label(),
+                              no = icon("circle") |> rem_aria_label())
+                          ),
+                          textOutput("feeding_comparison_title"),
+                          plotOutput("feeding_comparison_plot", height = "600px"))
+                    )
+           )
+           
+           
+    ) # tabBox ("Infant Feeding")
+  )
+)
+
+
+##About this indicator ----
+feeding_about <- tabItem(
+  tabName = "feeding_about",
+  fluidRow(
+    tabBox(title = "About this indicator",
+           # The id lets us use input$tabset00 on the server to find the current tab
+           id = "tabset01",
+           width = 12,
+           height = "25px",
            tabPanel(title = "About this indicator",
                     
                     fluidRow(
                       box(title = "Why measure this?",
                           width = 5,
+                          uiOutput("test_feeding"),
                           p("This is the part where we add a description of the
                             indicator and why it is useful."),
                           p("Filler text Filler text Filler text Filler text 
@@ -425,17 +483,17 @@ infant_feeding <- tabItem(
                            period specified.")
                       )
                     )
-           ) #tabPanel ("About this Measure")
-    ) # tabBox ("Infant Feeding")
-  )
-)
+           ) #tabPanel ("About this indicator")
+    ) #tabBox
+  ) #fluidRow
+) #tabItem
 
 
 
 
 ##Child Development ----
-child_development <- tabItem(
-  tabName = "child_development",
+development_charts <- tabItem(
+  tabName = "development_charts",
   fluidRow(
     tabBox(title = "Child Development",
            # The id lets us use input$tabset00 on the server to find the current tab
@@ -443,25 +501,42 @@ child_development <- tabItem(
            width = 12,
            height = "25px",
            
-           ###Charts ----
-           tabPanel(title = "Charts",
+           fluidRow(
+             box(width = 5,
+                 radioGroupButtons(
+                   inputId = "development_data",
+                   label = "Select the data you want to explore:",
+                   choiceNames = list("13-15 month review", "27-30 month review"),
+                   choiceValues = list("development_13_15_month_review", "development_27_30_month_review"),
+                   selected = "development_13_15_month_review",
+                   direction = "vertical",
+                   justified = TRUE,
+                   status = "primary",
+                   checkIcon = list(
+                     yes = icon("circle-check") |> rem_aria_label(),
+                     no = icon("circle") |> rem_aria_label())
+                 ) #radioGroupButtons
+             ), #box
+             box(width = 5, solidHeader = TRUE
+             ),
+             box(width = 2, solidHeader = TRUE,
+                 downloadButton("", 
+                                "Download data",
+                                icon = shiny::icon("download") |> rem_aria_label()
+                 ) 
+             )
+           ), #fluidRow
+           
+           
+           ###Runcharts ----
+           tabPanel(title = "Runcharts",
                     fluidRow(
-                      box(width = 6,
-                          radioGroupButtons(
-                            inputId = "development_data",
-                            label = "Select the data you want to explore:",
-                            choiceNames = list("13-15 month review", "27-30 month review"),
-                            choiceValues = list("development_13_15_month_review", "development_27_30_month_review"),
-                            selected = "development_13_15_month_review",
-                            direction = "vertical",
-                            justified = TRUE,
-                            status = "primary",
-                            checkIcon = list(
-                              yes = icon("circle-check") |> rem_aria_label(),
-                              no = icon("circle") |> rem_aria_label())
-                          ) #radioGroupButtons
+                      box(width = 5,
+                          uiOutput("geog_level_select_development")
                       ), #box
-                      box(width = 4, solidHeader = TRUE),
+                      box(width = 5, solidHeader = TRUE,
+                          uiOutput("geog_select_development")
+                          ),
                       box(width = 2, solidHeader = TRUE,
                           downloadButton("", 
                                          "Download data",
@@ -473,7 +548,6 @@ child_development <- tabItem(
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           textOutput("development_percentage_concern_title"),
-                          plotOutput("development_percentage_concern_plot", height = "300px"),
                           plotlyOutput("development_percentage_concern_plotly", height = "300px"),
                           
                           p("We have used ‘run charts’ to present the data above. 
@@ -499,44 +573,98 @@ child_development <- tabItem(
                       
                       box(width = 12,
                           textOutput("development_numbers_title"),
-                          plotOutput("development_numbers_plot", height = "300px"),
                           plotlyOutput("development_numbers_plotly", height = "300px")
                       )
                     ),
                     
                     uiOutput("scotland_only")
-                    # box(width = 12,
-                    #     textOutput("development_concerns_by_domain_title"),
-                    #     plotOutput("development_concerns_by_domain_plot", height = "300px")
-                    # ),
-                    # 
-                    # box(width = 12,
-                    #     checkboxGroupButtons(
-                    #       inputId = "simd_levels",
-                    #       label = "Select which SIMD quintiles to show. \n
-                    #       This scale ranges from 1 being the most deprived to 5 being the least deprived.",
-                    #       choices = c(1:5),
-                    #       selected = c(1),
-                    #       status = "primary",
-                    #       checkIcon = list(
-                    #         yes = icon("square-check") |> rem_aria_label(),
-                    #         no = icon("square") |> rem_aria_label())
-                    #     ),
-                    #     textOutput("development_concerns_by_simd_title"),
-                    #     plotOutput("development_concerns_by_simd_plot", height = "300px")
-                    # )
-                    
-                    
-                    
-                    
-           ), #tabPanel ("Charts")
+           ), #tabPanel ("Runcharts")
            
-           ###About this indicator ----
+           
+           
+           ###Comparisons ----
+           tabPanel(title = "Comparisons",
+                    fluidRow(
+                      box(width = 12, solidHeader = TRUE,
+                          radioGroupButtons(
+                            inputId = "geog_comparison_development",
+                            label = "Select geography level to compare:",
+                            choiceNames = list("Health Board", "Council Area"),
+                            choiceValues = list("NHS", "HSCP"),
+                            selected = "NHS",
+                            status = "primary",
+                            checkIcon = list(
+                              yes = icon("circle-check") |> rem_aria_label(),
+                              no = icon("circle") |> rem_aria_label())
+                          ),
+                          textOutput("development_comparison_title"),
+                          plotOutput("development_comparison_plot", height = "600px"))
+                      )
+                    ),
+           
+           ###Domains ----
+           tabPanel(title = "Domains",
+             fluidRow(
+               box(width = 12,
+                   checkboxGroupButtons(
+                     inputId = "domains_selected",
+                     label = "Select which domains to include in the plot:",
+                     choiceNames = domains$title,
+                     choiceValues = domains$variable,
+                     selected = domains$variable,
+                     status = "primary",
+                     checkIcon = list(
+                       yes = icon("square-check") |> rem_aria_label(),
+                       no = icon("square") |> rem_aria_label())
+                   ),
+                   textOutput("development_concerns_by_domain_title"),
+                   plotlyOutput("development_concerns_by_domain_plotly", height = "300px")
+               )
+             )
+           ),
+           
+           
+           ###SIMD ----
+           tabPanel(title = "SIMD",
+                    fluidRow(
+                      box(width = 12,
+                          checkboxGroupButtons(
+                            inputId = "simd_levels",
+                            label = "Select which SIMD quintiles to show. This 
+                            scale ranges from 1 being the most deprived to 5 
+                            being the least deprived.",
+                            choices = c(1:5),
+                            selected = c(1, 5),
+                            status = "primary",
+                            checkIcon = list(
+                              yes = icon("square-check") |> rem_aria_label(),
+                              no = icon("square") |> rem_aria_label())
+                            ),
+                          textOutput("development_concerns_by_simd_title"),
+                          plotlyOutput("development_concerns_by_simd_plotly", height = "300px")
+                          )
+                      )
+                    )
+           
+    ) # tabBox ("Child Development")
+  )
+)
+
+##About this indicator ----
+development_about <- tabItem(
+  tabName = "development_about",
+  fluidRow(
+    tabBox(title = "About this indicator",
+           # The id lets us use input$tabset00 on the server to find the current tab
+           id = "tabset01",
+           width = 12,
+           height = "25px",
            tabPanel(title = "About this indicator",
                     
                     fluidRow(
                       box(title = "Why measure this?",
                           width = 5, 
+                          uiOutput("test_dev"),
                           p("This is the part where we add a description of the
                             indicator and why it is useful."),
                           p("Filler text Filler text Filler text Filler text 
@@ -587,9 +715,10 @@ child_development <- tabItem(
                       )
                     )
            ) #tabPanel ("About this Measure")
-    ) # tabBox ("Child Development")
-  )
-)
+    ) #tabBox
+  ) #fluidRow
+) #tabItem
+           
 
 
 ##actual body ----
@@ -609,8 +738,10 @@ body <-
     
     #add dashboard pages to this list if we make more
     tabItems(home,
-             infant_feeding,
-             child_development)
+             feeding_charts,
+             feeding_about,
+             development_charts,
+             development_about)
   )
 
 
@@ -653,21 +784,51 @@ ui <-   tagList( #needed for shinyjs
 server <- function(input, output, session) {
   
   #Geography Control ----
-  #reactive variable to decide what to show on the drop-down list
-  geog_choices <- reactive({
-    switch(input$geog_level,
-           "All Scotland" = "Scotland",
-           "Health Board" = HBnames,
-           "HSCP" = HSCPnames)
+  output$geog_level_select_feeding <- renderUI({
+    radioGroupButtons(
+      inputId = "geog_level_chosen_feeding",
+      label = "Select geography level to display:",
+      choices = c("All Scotland", "Health Board", "Council Area"),
+      selected = selected$geog_level,
+      justified = TRUE,
+      status = "primary",
+      checkIcon = list(
+        yes = icon("circle-check") |> rem_aria_label(),
+        no = icon("circle") |> rem_aria_label())
+    )
   })
   
-  output$geog_select <- renderUI({
-    if (input$geog_level != "All Scotland") {
+  output$geog_level_select_development <- renderUI({
+    radioGroupButtons(
+      inputId = "geog_level_chosen_development",
+      label = "Select geography level to display:",
+      choices = c("All Scotland", "Health Board", "Council Area"),
+      selected = selected$geog_level,
+      justified = TRUE,
+      status = "primary",
+      checkIcon = list(
+        yes = icon("circle-check") |> rem_aria_label(),
+        no = icon("circle") |> rem_aria_label())
+    )
+  })
+  
+  geog_choices <- reactive({
+    if(length(selected$geog_level) == 1) {
+      switch(selected$geog_level,
+             "All Scotland" = "Scotland",
+             "Health Board" = HBnames,
+             "Council Area" = HSCPnames)
+    }
+  })
+  
+  
+  output$geog_select_feeding <- renderUI({
+    if (!("All Scotland" %in% selected$geog_level)) {
       pickerInput(
-        inputId = "geog_chosen",
-        label = paste0("Select ", input$geog_level),
+        inputId = "geog_chosen_feeding",
+        label = paste0("Select ", selected$geog_level, ":"),
         choices = geog_choices(),
-        selected = geog_choices()[1],
+        selected = selected$geog,
         choicesOpt = list(
           style = rep("color: #3F3685;", # PHS-purple text
                       length(geog_choices()))
@@ -678,12 +839,52 @@ server <- function(input, output, session) {
     }
   })
   
-  geog_final <- reactive({
-    switch(input$geog_level,
-           "All Scotland" = "All Scotland",
-           "Health Board" = input$geog_chosen,
-           "HSCP" = input$geog_chosen)
+  output$geog_select_development <- renderUI({
+    if (!("All Scotland" %in% selected$geog_level)) {
+      pickerInput(
+        inputId = "geog_chosen_development",
+        label = paste0("Select ", selected$geog_level, ":"),
+        choices = geog_choices(),
+        selected = selected$geog,
+        choicesOpt = list(
+          style = rep("color: #3F3685;", # PHS-purple text
+                      length(geog_choices()))
+        ),
+        options = list(
+          size = 10)
+      )
+    }
   })
+  
+  
+  geog_final <- reactive({
+    if (length(selected$geog_level) == 1) {
+      switch(selected$geog_level,
+             "All Scotland" = "All Scotland",
+             "Health Board" = selected$geog,
+             "Council Area" = selected$geog)
+    }
+  })
+  
+  
+  #Selected Values ----
+  selected <- reactiveValues(geog_level = "All Scotland",
+                             geog_comparison = "NHS")
+  
+  
+  observeEvent(input$geog_level_chosen_feeding, 
+               selected$geog_level <- input$geog_level_chosen_feeding)
+  
+  observeEvent(input$geog_level_chosen_development, 
+               selected$geog_level <- input$geog_level_chosen_development)
+  
+  
+  observeEvent(input$geog_chosen_feeding,
+               selected$geog <- input$geog_chosen_feeding)
+  
+  observeEvent(input$geog_chosen_development,
+               selected$geog <- input$geog_chosen_development)
+  
   
   
   
@@ -705,10 +906,17 @@ server <- function(input, output, session) {
   })
   
   
+  
+  
+  
+  
+  
   #.----
+  #Infant Feeding ----
   
   
-  #Infant Feeding Plots ----
+  
+  ##Basic Plots ----
   output$perc_exclusive_breastfed_title <- renderText({
     paste0("Percentage of children recorded as exclusively breastfed at ",
            feeding_data_name())
@@ -723,37 +931,33 @@ server <- function(input, output, session) {
     paste0("Percentage of children recorded as ever breastfed at ",
            feeding_data_name())
   })
+
   
-  output$perc_exclusive_breastfed_plot <- renderPlot({
-    create_runchart(dashboard_data[[input$feeding_data]], geog_final(), pc_excl) +
-      ylim(0,100)
-  })
-  
-  output$perc_overall_breastfed_plot <- renderPlot({
-    create_runchart(dashboard_data[[input$feeding_data]], geog_final(), pc_overall) +
-      ylim(0,100)
-  })
-  
-  output$perc_ever_breastfed_plot <- renderPlot({
-    create_runchart(dashboard_data[[input$feeding_data]], geog_final(), pc_ever) +
-      ylim(0,100)
-  })
   
   output$perc_exclusive_breastfed_plotly <- renderPlotly({
-    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_excl")
+    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_excl") |>
+      layout(yaxis = list(range = c(0,100), 
+                          title = list(text = "% of reviews with feeding data")),
+             xaxis = list(title = list(text = "Month of review")))
   })
   
   output$perc_overall_breastfed_plotly <- renderPlotly({
-    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_overall")
+    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_overall") |>
+      layout(yaxis = list(range = c(0,100), 
+                          title = list(text = "% of reviews with feeding data")),
+             xaxis = list(title = list(text = "Month of review")))
   })
   
   output$perc_ever_breastfed_plotly <- renderPlotly({
-    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_ever")
+    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_ever") |>
+      layout(yaxis = list(range = c(0,100), 
+                          title = list(text = "% of reviews with feeding data")),
+             xaxis = list(title = list(text = "Month of review")))
   })
   
   
   
-  #Infant Feeding Numbers Plot ----
+  ##Numbers Plot ----
   output$feeding_numbers_title <- renderText({
     paste0("Number of ",
            feeding_data_name(),
@@ -762,74 +966,80 @@ server <- function(input, output, session) {
            "s with data on infant feeding recorded; and children recorded as being breastfed")
   })
   
-  output$feeding_numbers_plot <- renderPlot({
+  
+  output$feeding_numbers_plotly <- renderPlotly({
     dashboard_data[[input$feeding_data]] |>
       filter(geography %in% geog_final()) |>
       pivot_longer(cols = no_reviews:ever_bf,
                    names_to = "category",
                    values_to = "number") |>
-      ggplot(aes(x = month_review, y = number, color = category)) +
-      geom_line()
+      plot_ly(x = ~ month_review,
+              y = ~ number,
+              type = "scatter",
+              mode = "lines",
+              linetype = ~ category) |>
+     config(displayModeBar = FALSE)
+ })
+  
+  
+  
+  
+  
+  
+  
+  
+  ##Comparisons ----
+  output$feeding_comparison_title <- renderText({
+    paste0("Comparing Health Boards for percentage exclusively/overall/ever breastfed at ",
+           feeding_data_name())
   })
   
-  
-  output$feeding_numbers_plotly <- renderPlotly({
-    data <- dashboard_data[[input$feeding_data]] |>
-      filter(geography %in% geog_final()) |>
-      pivot_longer(cols = no_reviews:ever_bf,
+  output$feeding_comparison_plot <- renderPlot({
+    dashboard_data[[input$feeding_data]] |>
+      filter(geography == "All Scotland" | 
+             str_starts(geography, input$geog_comparison_feeding) |
+             str_ends(geography, input$geog_comparison_feeding)) |>
+      pivot_longer(cols = pc_excl:pc_ever,
                    names_to = "category",
-                   values_to = "number")
-    
-    plot_ly(data = data,
-            x = ~ month_review,
-            y = ~ number,
-            type = "scatter",
-            mode = "lines",
-            linetype = ~ category)
+                   values_to = "number") |>
+      ggplot(aes(x = month_review, y = number, color = category)) +
+        geom_line() +
+        facet_wrap(~ geography)
   })
   
   
-  #.----
+  
+  
+
+  # Child Development ----
   
   
   
   
   
   
-  #Child Development Percentage Concern ----
+  
+  ##Percentage Concern ----
   output$development_percentage_concern_title <- renderText({
     paste0("Percentage of children with one or more developmental concerns ",
            "recorded at the ", 
            development_data_name())
   })
   
-  output$development_percentage_concern_plot <- renderPlot({
-    create_runchart(dashboard_data[[input$development_data]], geog_final(), pc_1_plus) +
-      ylim(0,40)
-  })
   
   output$development_percentage_concern_plotly <- renderPlotly({
-    create_runchart_plotly(dashboard_data[[input$development_data]], geog_final(), "pc_1_plus")
+    create_runchart_plotly(dashboard_data[[input$development_data]], geog_final(), "pc_1_plus") |>
+      layout(yaxis = list(range = c(0,40)))
   })
   
   
   
-  #Child Development Number of Reviews ----
+  ##Number of Reviews ----
   output$development_numbers_title <- renderText({
     paste0("Number of ",
            development_data_name(),
            "s; reviews with full meaningful data on child development recorded; ",
            "and children with 1 or more developmental concerns recorded")
-  })
-  
-  output$development_numbers_plot <- renderPlot({
-    dashboard_data[[input$development_data]] |>
-      filter(geography %in% geog_final()) |>
-      pivot_longer(cols = no_reviews:concerns_1_plus,
-                   names_to = "category",
-                   values_to = "number") |>
-      ggplot(aes(x = month_review, y = number, color = category)) +
-      geom_line()
   })
   
   output$development_numbers_plotly <- renderPlotly({
@@ -842,33 +1052,22 @@ server <- function(input, output, session) {
               y = ~ number,
               type = "scatter",
               mode = "lines",
-              linetype = ~ category)
+              linetype = ~ category) |>
+      config(displayModeBar = FALSE)
   })
   
   
   
   
-  #Child Development Concerns by Domain ----
+  ##Concerns by Domain ----
   output$development_concerns_by_domain_title <- renderText({
     paste0("Percentage of ",
            development_data_name(),
            "s with a new or previous concern recorded by developmental domain")
   })
   
-  output$development_concerns_by_domain_plot <- renderPlot({
-    dashboard_data[[paste0(input$development_data, "_domains")]] |>
-      filter(geography %in% geog_final()) |>
-      pivot_longer(cols = slc_perc:hearing_perc,
-                   names_to = "category",
-                   values_to = "number") |>
-      filter(category %in% input$domains_selected) |>
-      ggplot(aes(x = month_review, y = number, color = category)) +
-      geom_line()
-  })
-  
   output$development_concerns_by_domain_plotly <- renderPlotly({
     dashboard_data[[paste0(input$development_data, "_domains")]] |>
-      filter(geography %in% geog_final()) |>
       pivot_longer(cols = slc_perc:hearing_perc,
                    names_to = "category",
                    values_to = "number") |>
@@ -877,77 +1076,105 @@ server <- function(input, output, session) {
               y = ~ number,
               type = "scatter",
               mode = "lines",
-              linetype = ~ category)
+              linetype = ~ category) |>
+      config(displayModeBar = FALSE)
   })
   
   
   
-  #Child Develpments Concerns by SIMD Quintile ----
+  ##Concerns by SIMD Quintile ----
   output$development_concerns_by_simd_title <- renderText({
     paste0("Percentage of children with 1 or more developmental concerns recorded at the ",
            development_data_name(),
            " by SIMD deprivation quintile")
   })
   
-  output$development_concerns_by_simd_plot <- renderPlot({
-    dashboard_data[[paste0(input$development_data, "_simd")]] |>
-      filter(geography %in% geog_final() & simd %in% input$simd_levels) |>
-      ggplot(aes(x = month_review, y = pc_1_plus, color = simd)) +
-      ylim(0,30) +
-      geom_line()
-  })
-  
   output$development_concerns_by_simd_plotly <- renderPlotly({
     dashboard_data[[paste0(input$development_data, "_simd")]] |>
-      filter(geography %in% geog_final() & simd %in% input$simd_levels) |>
+      filter(simd %in% input$simd_levels) |>
       plot_ly(x = ~ month_review,
               y = ~ pc_1_plus,
               type = "scatter",
               mode = "lines",
-              linetype = ~ simd)
+              linetype = ~ simd) |>
+      config(displayModeBar = FALSE)  |>
+      layout(yaxis = list(range = c(0,30)))
   })
   
   
   
-  #Scotland Only Section of UI ----
+  ##Scotland Only Section of UI ----
   output$scotland_only <- renderUI({
-    if (input$geog_level == "All Scotland") {
+    if ("All Scotland" %in% selected$geog_level) {
       fluidRow(
-        box(width = 12,
-            checkboxGroupButtons(
-              inputId = "domains_selected",
-              label = "Select which domains to include in the plot:",
-              choiceNames = domains$title,
-              choiceValues = domains$variable,
-              selected = domains$variable,
-              status = "primary",
-              checkIcon = list(
-                yes = icon("square-check") |> rem_aria_label(),
-                no = icon("square") |> rem_aria_label())
-            ),
-            textOutput("development_concerns_by_domain_title"),
-            plotOutput("development_concerns_by_domain_plot", height = "300px"),
-            plotlyOutput("development_concerns_by_domain_plotly", height = "300px")
-        ),
+        # box(width = 12,
+        #     checkboxGroupButtons(
+        #       inputId = "domains_selected",
+        #       label = "Select which domains to include in the plot:",
+        #       choiceNames = domains$title,
+        #       choiceValues = domains$variable,
+        #       selected = domains$variable,
+        #       status = "primary",
+        #       checkIcon = list(
+        #         yes = icon("square-check") |> rem_aria_label(),
+        #         no = icon("square") |> rem_aria_label())
+        #     ),
+        #     textOutput("development_concerns_by_domain_title"),
+        #     plotlyOutput("development_concerns_by_domain_plotly", height = "300px")
+        # ),
         
-        box(width = 12,
-            checkboxGroupButtons(
-              inputId = "simd_levels",
-              label = "Select which SIMD quintiles to show.
-                      This scale ranges from 1 being the most deprived to 5 being the least deprived.",
-              choices = c(1:5),
-              selected = c(1, 5),
-              status = "primary",
-              checkIcon = list(
-                yes = icon("square-check") |> rem_aria_label(),
-                no = icon("square") |> rem_aria_label())
-            ),
-            textOutput("development_concerns_by_simd_title"),
-            plotOutput("development_concerns_by_simd_plot", height = "300px"),
-            plotlyOutput("development_concerns_by_simd_plotly", height = "300px")
-        )
+        # box(width = 12,
+        #     checkboxGroupButtons(
+        #       inputId = "simd_levels",
+        #       label = "Select which SIMD quintiles to show.
+        #               This scale ranges from 1 being the most deprived to 5 being the least deprived.",
+        #       choices = c(1:5),
+        #       selected = c(1, 5),
+        #       status = "primary",
+        #       checkIcon = list(
+        #         yes = icon("square-check") |> rem_aria_label(),
+        #         no = icon("square") |> rem_aria_label())
+        #     ),
+        #     textOutput("development_concerns_by_simd_title"),
+        #     plotlyOutput("development_concerns_by_simd_plotly", height = "300px")
+        # )
       )
     }
+  })
+  
+  
+  ##Comparisons ----
+  output$development_comparison_title <- renderText({
+    paste0("Comparing Health Boards for percentage exclusively/overall/ever breastfed at ",
+           development_data_name())
+  })
+  
+  output$development_comparison_plot <- renderPlot({
+    dashboard_data[[input$development_data]] |>
+      filter(geography == "All Scotland" | 
+               str_starts(geography, input$geog_comparison_development) |
+               str_ends(geography, input$geog_comparison_development)) |>
+      ggplot(aes(x = month_review, y = pc_1_plus)) +
+      geom_line() +
+      facet_wrap(~ geography)
+  })
+  
+  
+  
+  
+  
+  #Testing! ----
+  output$testing <- renderPrint({
+    str_view(c(paste0("A ", input$geog_level_chosen_feeding),
+               paste0("B ", input$geog_level_chosen_development),
+               paste0("C ", input$geog_chosen_feeding),
+               paste0("D ", input$geog_chosen_development),
+               paste0("H ", selected$geog_level),
+               paste0("I ", selected$geog),
+               paste0("J ", geog_final()),
+               paste0("G ", input$geog_comparison_feeding),
+               paste0("H ", input$geog_comparison_development)
+               ))
   })
   
   
