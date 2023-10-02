@@ -37,50 +37,6 @@ source("functions.R")
 
 
 
-##read in files ----
-
-#date must match the file name to read in
-extract_date <- "25thSeptember2023"
-
-#create the file names using the extract date
-files <- paste0(extract_date,
-                "Dashboard - ",
-                c("firstvisit", "6-8 week",
-                  "13-15m", "27-30m",
-                  "13-15m_Domains", "27-30m_Domains",
-                  "13-15m_SIMD", "27-30m_SIMD"),
-                ".xlsx")
-
-#read in each file and put them in a list
-dashboard_data <- map(files, \(x) {
-  read.xlsx(
-    paste0("/PHI_conf/ChildHealthSurveillance/Topics/ChildHealth/Projects/20200707-Covid19-Breastfeeding-and-ChildDevelopment/Output/",
-           x)
-  ) |> 
-    
-    #make the data we read in tidier
-    tibble() |> 
-    clean_names() |>
-    select( -any_of("hscp2019_code")) |>
-    filter(!(geography %in% c("Argyll & Clyde", "Unknown HSCP"))) |>
-    mutate(geography = case_when(geography == "Scotland" ~ "All Scotland",
-                                 str_ends(geography, "HSCP", negate = TRUE) ~ paste0("NHS ", geography),
-                                 TRUE ~ geography) |> factor(),
-           month_review = as.Date(month_review, origin = ymd("1900-01-01")-2)
-    )
-})
-
-#put names on each of the tibbles
-names(dashboard_data) <- c("feeding_first_visit", "feeding_6_8_week_review",
-                           "development_13_15_month_review", "development_27_30_month_review",
-                           "development_13_15_month_review_domains", "development_27_30_month_review_domains",
-                           "development_13_15_month_review_simd", "development_27_30_month_review_simd")
-
-
-
-
-
-
 
 
 ##reference lists ----
@@ -112,6 +68,48 @@ slc_perc, Speech, language & communication
              hearing_perc, Hearing")
 
 
+
+
+
+
+##read in files ----
+
+#date must match the file name to read in
+extract_date <- "25thSeptember2023"
+
+#create the file names using the extract date
+files <- paste0(extract_date,
+                "Dashboard - ",
+                c("firstvisit", "6-8 week",
+                  "13-15m", "27-30m",
+                  "13-15m_Domains", "27-30m_Domains",
+                  "13-15m_SIMD", "27-30m_SIMD"),
+                ".xlsx")
+
+#read in each file and put them in a list
+dashboard_data <- map(files, \(x) {
+  read.xlsx(
+    paste0("/PHI_conf/ChildHealthSurveillance/Topics/ChildHealth/Projects/20200707-Covid19-Breastfeeding-and-ChildDevelopment/Output/",
+           x)
+  ) |> 
+    
+    #make the data we read in tidier
+    tibble() |> 
+    clean_names() |>
+    select( -any_of("hscp2019_code")) |>
+    filter(!(geography %in% c("Argyll & Clyde", "Unknown HSCP"))) |>
+    mutate(geography = case_when(geography == "Scotland" ~ "All Scotland",
+                                 str_ends(geography, "HSCP", negate = TRUE) ~ paste0("NHS ", geography),
+                                 TRUE ~ geography) |> factor(levels = c("All Scotland", HBnames, HSCPnames)),
+           month_review = as.Date(month_review, origin = ymd("1900-01-01")-2)
+    )
+})
+
+#put names on each of the tibbles
+names(dashboard_data) <- c("feeding_first_visit", "feeding_6_8_week_review",
+                           "development_13_15_month_review", "development_27_30_month_review",
+                           "development_13_15_month_review_domains", "development_27_30_month_review_domains",
+                           "development_13_15_month_review_simd", "development_27_30_month_review_simd")
 
 
 
@@ -168,7 +166,7 @@ sidebar <- dashboardSidebar(
                menuSubItem("About this indicator",
                            tabName = "feeding_about",
                            icon = shiny::icon("angle-double-right") |> rem_aria_label())
-               ) |> rem_menu_aria_label(),
+      ) |> rem_menu_aria_label(),
       
       menuItem("Child Development",
                icon = icon("children", verify_fa = FALSE) |> rem_aria_label(),
@@ -338,7 +336,20 @@ feeding_charts <- tabItem(
                      no = icon("circle") |> rem_aria_label())
                  ) #radioGroupButtons
              ), #box
-             box(width = 5, solidHeader = TRUE
+             box(width = 5,
+                 checkboxGroupButtons(
+                   inputId = "feeding_type",
+                   label = "Select which types of breastfeeding statistics to show:",
+                   choiceNames = c("Exclusively breastfed", "Overall breastfed", "Ever breastfed"),
+                   choiceValues = c("pc_excl", "pc_overall", "pc_ever"),
+                   selected = c("pc_excl", "pc_overall", "pc_ever"),
+                   status = "primary",
+                   direction = "vertical",
+                   justified = TRUE,
+                   checkIcon = list(
+                     yes = icon("square-check") |> rem_aria_label(),
+                     no = icon("square") |> rem_aria_label())
+                 )
              ),
              box(width = 2, solidHeader = TRUE,
                  downloadButton("", 
@@ -354,28 +365,19 @@ feeding_charts <- tabItem(
                     fluidRow(
                       box(width = 5,
                           uiOutput("geog_level_select_feeding")
-                          ),
-                      box(width = 5, solidHeader = TRUE,
+                      ),
+                      box(width = 4, solidHeader = TRUE,
                           uiOutput("geog_select_feeding")
-                          ),
-                      box(width = 2, solidHeader = TRUE)
+                      ),
+                      box(width = 3, solidHeader = TRUE
+                      )
                     ), #fluidRow
                     
                     fluidRow(
-                      box(width = 4, solidHeader = TRUE,
-                          textOutput("perc_exclusive_breastfed_title"),
-                          plotlyOutput("perc_exclusive_breastfed_plotly", height = "200px")
+                      box(width = 12, solidHeader = TRUE,
+                          textOutput("feeding_perc_title"),
+                          plotlyOutput("feeding_perc_plotly", height = "300px")
                       ),
-                      box(width = 4, solidHeader = TRUE,
-                          textOutput("perc_overall_breastfed_title"),
-                          plotlyOutput("perc_overall_breastfed_plotly", height = "200px")
-                      ),
-                      box(width = 4, solidHeader = TRUE,
-                          textOutput("perc_ever_breastfed_title"),
-                          plotlyOutput("perc_ever_breastfed_plotly", height = "200px")
-                      ),
-                      
-                      
                       box(width = 12, solidHeader = TRUE,
                           p("We have used ‘run charts’ to present the data above. 
                           Run charts use a series of rules to help identify unusual 
@@ -409,18 +411,28 @@ feeding_charts <- tabItem(
            ###Comparisons ----
            tabPanel(title = "Comparisons",
                     fluidRow(
+                      box(width = 4,
+                          uiOutput("geog_comparison_level_select_feeding")
+                          # radioGroupButtons(
+                          #   inputId = "geog_comparison_level_feeding",
+                          #   label = "Select geography level to compare:",
+                          #   choiceNames = list("Health Board", "Council Area"),
+                          #   choiceValues = list("NHS", "HSCP"),
+                          #   selected = "NHS",
+                          #   status = "primary",
+                          #   justified = TRUE,
+                          #   checkIcon = list(
+                          #     yes = icon("circle-check") |> rem_aria_label(),
+                          #     no = icon("circle") |> rem_aria_label())
+                          # )
+                      ),
+                      box(width = 8, solidHeader = TRUE,
+                          uiOutput("geog_comparison_select_feeding")
+                      )
+                    ),
+                    
+                    fluidRow(
                       box(width = 12, solidHeader = TRUE,
-                          radioGroupButtons(
-                            inputId = "geog_comparison_feeding",
-                            label = "Select geography level to compare:",
-                            choiceNames = list("Health Board", "Council Area"),
-                            choiceValues = list("NHS", "HSCP"),
-                            selected = "NHS",
-                            status = "primary",
-                            checkIcon = list(
-                              yes = icon("circle-check") |> rem_aria_label(),
-                              no = icon("circle") |> rem_aria_label())
-                          ),
                           textOutput("feeding_comparison_title"),
                           plotOutput("feeding_comparison_plot", height = "600px"))
                     )
@@ -432,7 +444,7 @@ feeding_charts <- tabItem(
 )
 
 
-##About this indicator ----
+###About this indicator ----
 feeding_about <- tabItem(
   tabName = "feeding_about",
   fluidRow(
@@ -533,16 +545,12 @@ development_charts <- tabItem(
                     fluidRow(
                       box(width = 5,
                           uiOutput("geog_level_select_development")
-                      ), #box
+                      ),
                       box(width = 5, solidHeader = TRUE,
                           uiOutput("geog_select_development")
-                          ),
-                      box(width = 2, solidHeader = TRUE,
-                          downloadButton("", 
-                                         "Download data",
-                                         icon = shiny::icon("download") |> rem_aria_label()
-                          ) 
-                      )
+                      ),
+                      box(width = 2, solidHeader = TRUE
+                      ) 
                     ), #fluidRow
                     
                     fluidRow(
@@ -575,9 +583,7 @@ development_charts <- tabItem(
                           textOutput("development_numbers_title"),
                           plotlyOutput("development_numbers_plotly", height = "300px")
                       )
-                    ),
-                    
-                    uiOutput("scotland_only")
+                    ) #fluidRow
            ), #tabPanel ("Runcharts")
            
            
@@ -585,42 +591,51 @@ development_charts <- tabItem(
            ###Comparisons ----
            tabPanel(title = "Comparisons",
                     fluidRow(
-                      box(width = 12, solidHeader = TRUE,
-                          radioGroupButtons(
-                            inputId = "geog_comparison_development",
-                            label = "Select geography level to compare:",
-                            choiceNames = list("Health Board", "Council Area"),
-                            choiceValues = list("NHS", "HSCP"),
-                            selected = "NHS",
-                            status = "primary",
-                            checkIcon = list(
-                              yes = icon("circle-check") |> rem_aria_label(),
-                              no = icon("circle") |> rem_aria_label())
-                          ),
-                          textOutput("development_comparison_title"),
-                          plotOutput("development_comparison_plot", height = "600px"))
+                      box(width = 4,
+                          uiOutput("geog_comparison_level_select_development")
+                          # radioGroupButtons(
+                          #   inputId = "geog_comparison_level_development",
+                          #   label = "Select geography level to compare:",
+                          #   choiceNames = list("Health Board", "Council Area"),
+                          #   choiceValues = list("NHS", "HSCP"),
+                          #   selected = "NHS",
+                          #   status = "primary",
+                          #   justified = TRUE,
+                          #   checkIcon = list(
+                          #     yes = icon("circle-check") |> rem_aria_label(),
+                          #     no = icon("circle") |> rem_aria_label())
+                          # )
+                      ),
+                      box(width = 8, solidHeader = TRUE,
+                          uiOutput("geog_comparison_select_development")
                       )
                     ),
+                    fluidRow(
+                      box(width = 12, solidHeader = TRUE,
+                          textOutput("development_comparison_title"),
+                          plotOutput("development_comparison_plot", height = "600px"))
+                    )
+           ),
            
            ###Domains ----
            tabPanel(title = "Domains",
-             fluidRow(
-               box(width = 12,
-                   checkboxGroupButtons(
-                     inputId = "domains_selected",
-                     label = "Select which domains to include in the plot:",
-                     choiceNames = domains$title,
-                     choiceValues = domains$variable,
-                     selected = domains$variable,
-                     status = "primary",
-                     checkIcon = list(
-                       yes = icon("square-check") |> rem_aria_label(),
-                       no = icon("square") |> rem_aria_label())
-                   ),
-                   textOutput("development_concerns_by_domain_title"),
-                   plotlyOutput("development_concerns_by_domain_plotly", height = "300px")
-               )
-             )
+                    fluidRow(
+                      box(width = 12,
+                          checkboxGroupButtons(
+                            inputId = "domains_selected",
+                            label = "Select which domains to include in the plot:",
+                            choiceNames = domains$title,
+                            choiceValues = domains$variable,
+                            selected = domains$variable,
+                            status = "primary",
+                            checkIcon = list(
+                              yes = icon("square-check") |> rem_aria_label(),
+                              no = icon("square") |> rem_aria_label())
+                          ),
+                          textOutput("development_concerns_by_domain_title"),
+                          plotlyOutput("development_concerns_by_domain_plotly", height = "300px")
+                      )
+                    )
            ),
            
            
@@ -639,18 +654,18 @@ development_charts <- tabItem(
                             checkIcon = list(
                               yes = icon("square-check") |> rem_aria_label(),
                               no = icon("square") |> rem_aria_label())
-                            ),
+                          ),
                           textOutput("development_concerns_by_simd_title"),
                           plotlyOutput("development_concerns_by_simd_plotly", height = "300px")
-                          )
                       )
                     )
+           )
            
     ) # tabBox ("Child Development")
   )
 )
 
-##About this indicator ----
+###About this indicator ----
 development_about <- tabItem(
   tabName = "development_about",
   fluidRow(
@@ -718,7 +733,7 @@ development_about <- tabItem(
     ) #tabBox
   ) #fluidRow
 ) #tabItem
-           
+
 
 
 ##actual body ----
@@ -812,14 +827,7 @@ server <- function(input, output, session) {
     )
   })
   
-  geog_choices <- reactive({
-    if(length(selected$geog_level) == 1) {
-      switch(selected$geog_level,
-             "All Scotland" = "Scotland",
-             "Health Board" = HBnames,
-             "Council Area" = HSCPnames)
-    }
-  })
+  
   
   
   output$geog_select_feeding <- renderUI({
@@ -857,6 +865,37 @@ server <- function(input, output, session) {
   })
   
   
+  
+  
+  
+  
+  #Selected Values ----
+  selected <- reactiveValues(geog_level = "All Scotland",
+                             geog_comparison_level = "NHS")
+  
+  
+  observeEvent(input$geog_level_chosen_feeding, 
+               selected$geog_level <- input$geog_level_chosen_feeding)
+  
+  observeEvent(input$geog_level_chosen_development, 
+               selected$geog_level <- input$geog_level_chosen_development)
+  
+  geog_choices <- reactive({
+    if(length(selected$geog_level) == 1) {
+      switch(selected$geog_level,
+             "All Scotland" = "Scotland",
+             "Health Board" = HBnames,
+             "Council Area" = HSCPnames)
+    }
+  })
+  
+  
+  observeEvent(input$geog_chosen_feeding,
+               selected$geog <- input$geog_chosen_feeding)
+  
+  observeEvent(input$geog_chosen_development,
+               selected$geog <- input$geog_chosen_development)
+  
   geog_final <- reactive({
     if (length(selected$geog_level) == 1) {
       switch(selected$geog_level,
@@ -867,25 +906,38 @@ server <- function(input, output, session) {
   })
   
   
-  #Selected Values ----
-  selected <- reactiveValues(geog_level = "All Scotland",
-                             geog_comparison = "NHS")
   
   
-  observeEvent(input$geog_level_chosen_feeding, 
-               selected$geog_level <- input$geog_level_chosen_feeding)
+  observeEvent(input$geog_comparison_level_feeding,
+               selected$geog_comparison_level <- input$geog_comparison_level_feeding)
   
-  observeEvent(input$geog_level_chosen_development, 
-               selected$geog_level <- input$geog_level_chosen_development)
+  observeEvent(input$geog_comparison_level_development,
+               selected$geog_comparison_level <- input$geog_comparison_level_development)
+  
+  comparison_choices <- reactive({
+    if(length(selected$geog_comparison_level) == 1) {
+      c("All Scotland", 
+        switch(selected$geog_comparison_level,
+               "NHS" = HBnames,
+               "HSCP" = HSCPnames))
+    }
+  })
   
   
-  observeEvent(input$geog_chosen_feeding,
-               selected$geog <- input$geog_chosen_feeding)
-  
-  observeEvent(input$geog_chosen_development,
-               selected$geog <- input$geog_chosen_development)
   
   
+  
+  observeEvent(input$geog_comparison_list_feeding,
+               selected$geog_comparison_list <- input$geog_comparison_list_feeding)
+  
+  observeEvent(input$geog_comparison_list_development,
+               selected$geog_comparison_list <- input$geog_comparison_list_development)
+  
+  observeEvent(input$geog_comparison_level_feeding,
+               selected$geog_comparison_list <- comparison_choices())
+  
+  observeEvent(input$geog_comparison_level_development,
+               selected$geog_comparison_list <- comparison_choices())
   
   
   
@@ -906,6 +958,45 @@ server <- function(input, output, session) {
   })
   
   
+ 
+  
+  feeding_type_name <- reactive({
+    if(length(input$feeding_type) >= 1) {
+      c(
+        switch(input$feeding_type[1],
+               "pc_excl" = "exclusively breastfed",
+               "pc_overall" = "overall breastfed",
+               "pc_ever" = "ever breastfed"),
+        switch(input$feeding_type[2],
+               "pc_excl" = "exclusively breastfed",
+               "pc_overall" = "overall breastfed",
+               "pc_ever" = "ever breastfed"),
+        switch(input$feeding_type[3],
+               "pc_excl" = "exclusively breastfed",
+               "pc_overall" = "overall breastfed",
+               "pc_ever" = "ever breastfed")
+      )
+    }
+  })
+  
+  feeding_type_numbers <- reactive({
+    if(length(input$feeding_type) >= 1) {
+      c(
+        switch(input$feeding_type[1],
+               "pc_excl" = "exclusive_bf",
+               "pc_overall" = "overall_bf",
+               "pc_ever" = "ever_bf"),
+        switch(input$feeding_type[2],
+               "pc_excl" = "exclusive_bf",
+               "pc_overall" = "overall_bf",
+               "pc_ever" = "ever_bf"),
+        switch(input$feeding_type[3],
+               "pc_excl" = "exclusive_bf",
+               "pc_overall" = "overall_bf",
+               "pc_ever" = "ever_bf")
+      )
+    }
+  })
   
   
   
@@ -915,45 +1006,36 @@ server <- function(input, output, session) {
   #Infant Feeding ----
   
   
-  
-  ##Basic Plots ----
-  output$perc_exclusive_breastfed_title <- renderText({
-    paste0("Percentage of children recorded as exclusively breastfed at ",
+  ##Percentage Plot ----
+  output$feeding_perc_title <- renderText({
+    paste0("Percentage of children recorded as ",
+           str_flatten_comma(feeding_type_name(), last = ", and "),
+           " at ",
            feeding_data_name())
   })
   
-  output$perc_overall_breastfed_title <- renderText({
-    paste0("Percentage of children recorded as overall breastfed at ",
-           feeding_data_name())
-  })
-  
-  output$perc_ever_breastfed_title <- renderText({
-    paste0("Percentage of children recorded as ever breastfed at ",
-           feeding_data_name())
-  })
-
-  
-  
-  output$perc_exclusive_breastfed_plotly <- renderPlotly({
-    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_excl") |>
+  output$feeding_perc_plotly <- renderPlotly({
+    dashboard_data[[input$feeding_data]] |>
+      filter(geography %in% geog_final()) |>
+      pivot_longer(cols = pc_excl:pc_ever,
+                   names_to = "category",
+                   values_to = "number") |>
+      filter(category %in% input$feeding_type) |>
+      plot_ly(x = ~ month_review,
+              y = ~ number,
+              type = "scatter",
+              mode = "lines",
+              linetype = ~ category) |>
+      config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0,100), 
                           title = list(text = "% of reviews with feeding data")),
              xaxis = list(title = list(text = "Month of review")))
   })
   
-  output$perc_overall_breastfed_plotly <- renderPlotly({
-    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_overall") |>
-      layout(yaxis = list(range = c(0,100), 
-                          title = list(text = "% of reviews with feeding data")),
-             xaxis = list(title = list(text = "Month of review")))
-  })
   
-  output$perc_ever_breastfed_plotly <- renderPlotly({
-    create_runchart_plotly(dashboard_data[[input$feeding_data]], geog_final(), "pc_ever") |>
-      layout(yaxis = list(range = c(0,100), 
-                          title = list(text = "% of reviews with feeding data")),
-             xaxis = list(title = list(text = "Month of review")))
-  })
+  
+  
+  
   
   
   
@@ -973,13 +1055,14 @@ server <- function(input, output, session) {
       pivot_longer(cols = no_reviews:ever_bf,
                    names_to = "category",
                    values_to = "number") |>
+      filter(category %in% c("no_reviews", "no_valid_reviews", feeding_type_numbers())) |>
       plot_ly(x = ~ month_review,
               y = ~ number,
               type = "scatter",
               mode = "lines",
               linetype = ~ category) |>
-     config(displayModeBar = FALSE)
- })
+      config(displayModeBar = FALSE)
+  })
   
   
   
@@ -995,22 +1078,51 @@ server <- function(input, output, session) {
   })
   
   output$feeding_comparison_plot <- renderPlot({
-    dashboard_data[[input$feeding_data]] |>
-      filter(geography == "All Scotland" | 
-             str_starts(geography, input$geog_comparison_feeding) |
-             str_ends(geography, input$geog_comparison_feeding)) |>
-      pivot_longer(cols = pc_excl:pc_ever,
-                   names_to = "category",
-                   values_to = "number") |>
-      ggplot(aes(x = month_review, y = number, color = category)) +
+    if(length(input$geog_comparison_list_feeding) >= 1) {
+      dashboard_data[[input$feeding_data]] |>
+        filter(geography %in% input$geog_comparison_list_feeding) |>
+        pivot_longer(cols = pc_excl:pc_ever,
+                     names_to = "category",
+                     values_to = "number") |>
+        filter(category %in% input$feeding_type) |>
+        ggplot(aes(x = month_review, y = number, color = category)) +
         geom_line() +
         facet_wrap(~ geography)
+    }
+  })
+  
+  
+  output$geog_comparison_level_select_feeding <- renderUI({
+    radioGroupButtons(
+      inputId = "geog_comparison_level_feeding",
+      label = "Select geography level to compare:",
+      choiceNames = list("Health Board", "Council Area"),
+      choiceValues = list("NHS", "HSCP"),
+      selected = selected$geog_comparison_level,
+      status = "primary",
+      justified = TRUE,
+      checkIcon = list(
+        yes = icon("circle-check") |> rem_aria_label(),
+        no = icon("circle") |> rem_aria_label())
+    )
+  })
+  
+  output$geog_comparison_select_feeding <- renderUI({
+    pickerInput(
+      inputId = "geog_comparison_list_feeding",
+      label = paste0("Select ", 
+                     switch(selected$geog_comparison_level, "NHS" = "Health Board", "HSCP" = "Council Area"),
+                     "s to display:"),
+      choices = comparison_choices(),
+      selected = selected$geog_comparison_list,
+      multiple = TRUE,
+      options = list(`actions-box` = TRUE)
+    )
   })
   
   
   
   
-
   # Child Development ----
   
   
@@ -1103,44 +1215,7 @@ server <- function(input, output, session) {
   
   
   
-  ##Scotland Only Section of UI ----
-  output$scotland_only <- renderUI({
-    if ("All Scotland" %in% selected$geog_level) {
-      fluidRow(
-        # box(width = 12,
-        #     checkboxGroupButtons(
-        #       inputId = "domains_selected",
-        #       label = "Select which domains to include in the plot:",
-        #       choiceNames = domains$title,
-        #       choiceValues = domains$variable,
-        #       selected = domains$variable,
-        #       status = "primary",
-        #       checkIcon = list(
-        #         yes = icon("square-check") |> rem_aria_label(),
-        #         no = icon("square") |> rem_aria_label())
-        #     ),
-        #     textOutput("development_concerns_by_domain_title"),
-        #     plotlyOutput("development_concerns_by_domain_plotly", height = "300px")
-        # ),
-        
-        # box(width = 12,
-        #     checkboxGroupButtons(
-        #       inputId = "simd_levels",
-        #       label = "Select which SIMD quintiles to show.
-        #               This scale ranges from 1 being the most deprived to 5 being the least deprived.",
-        #       choices = c(1:5),
-        #       selected = c(1, 5),
-        #       status = "primary",
-        #       checkIcon = list(
-        #         yes = icon("square-check") |> rem_aria_label(),
-        #         no = icon("square") |> rem_aria_label())
-        #     ),
-        #     textOutput("development_concerns_by_simd_title"),
-        #     plotlyOutput("development_concerns_by_simd_plotly", height = "300px")
-        # )
-      )
-    }
-  })
+  
   
   
   ##Comparisons ----
@@ -1150,19 +1225,51 @@ server <- function(input, output, session) {
   })
   
   output$development_comparison_plot <- renderPlot({
-    dashboard_data[[input$development_data]] |>
-      filter(geography == "All Scotland" | 
-               str_starts(geography, input$geog_comparison_development) |
-               str_ends(geography, input$geog_comparison_development)) |>
-      ggplot(aes(x = month_review, y = pc_1_plus)) +
-      geom_line() +
-      facet_wrap(~ geography)
+    if(length(input$geog_comparison_list_development) >= 1) {
+      dashboard_data[[input$development_data]] |>
+        filter(geography %in% input$geog_comparison_list_development) |>
+        ggplot(aes(x = month_review, y = pc_1_plus)) +
+        geom_line() +
+        facet_wrap(~ geography)
+    }
+  })
+  
+  
+  output$geog_comparison_level_select_development <- renderUI({
+    radioGroupButtons(
+      inputId = "geog_comparison_level_development",
+      label = "Select geography level to compare:",
+      choiceNames = list("Health Board", "Council Area"),
+      choiceValues = list("NHS", "HSCP"),
+      selected = selected$geog_comparison_level,
+      status = "primary",
+      justified = TRUE,
+      checkIcon = list(
+        yes = icon("circle-check") |> rem_aria_label(),
+        no = icon("circle") |> rem_aria_label())
+    )
+  })
+  
+  output$geog_comparison_select_development <- renderUI({
+    pickerInput(
+      inputId = "geog_comparison_list_development",
+      label = paste0("Select ", 
+                     switch(selected$geog_comparison_level, "NHS" = "Health Board", "HSCP" = "Council Area"),
+                     "s to display:"),
+      choices = comparison_choices(),
+      selected =  selected$geog_comparison_list,
+      multiple = TRUE,
+      options = list(`actions-box` = TRUE)
+    )
   })
   
   
   
   
   
+  
+  
+  #.----
   #Testing! ----
   output$testing <- renderPrint({
     str_view(c(paste0("A ", input$geog_level_chosen_feeding),
@@ -1172,9 +1279,12 @@ server <- function(input, output, session) {
                paste0("H ", selected$geog_level),
                paste0("I ", selected$geog),
                paste0("J ", geog_final()),
-               paste0("G ", input$geog_comparison_feeding),
-               paste0("H ", input$geog_comparison_development)
-               ))
+               paste0("G ", input$geog_comparison_level_feeding),
+               paste0("H ", input$geog_comparison_level_development),
+               paste0("I ", input$feeding_type),
+               paste0("J ", feeding_type_numbers()),
+               selected$geog_comparison_list
+    ))
   })
   
   

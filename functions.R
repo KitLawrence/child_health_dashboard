@@ -39,15 +39,6 @@ rem_menu_aria_label <- function(menu) {
 
 
 
-create_runchart <- function(dataset, geog, variable) {
-  dataset |>
-  filter(geography %in% geog) |>
-  ggplot(aes(x = month_review, y =  {{variable}} )) +
-  geom_line()
-}
-
-
-
 create_runchart_plotly <- function(dataset, geog, variable) {
   dataset <- dataset |>
     filter(geography %in% geog)
@@ -59,6 +50,5 @@ create_runchart_plotly <- function(dataset, geog, variable) {
           mode = "lines") |>
     config(displayModeBar = FALSE)
 }
-
 
 
