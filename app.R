@@ -82,9 +82,9 @@ extract_date <- "25thSeptember2023"
 files <- paste0(extract_date,
                 "Dashboard - ",
                 c("firstvisit", "6-8 week",
-                  "13-15m", "27-30m",
-                  "13-15m_Domains", "27-30m_Domains",
-                  "13-15m_SIMD", "27-30m_SIMD"),
+                  "13-15m", "27-30m", "4-5y",
+                  "13-15m_Domains", "27-30m_Domains", "4-5y_Domains",
+                  "13-15m_SIMD", "27-30m_SIMD", "4-5y_SIMD"),
                 ".xlsx")
 
 #read in each file and put them in a list
@@ -116,9 +116,9 @@ dashboard_data <- map(files, \(x) {
 
 #put names on each of the tibbles
 names(dashboard_data) <- c("feeding_first_visit", "feeding_6_8_week_review",
-                           "development_13_15_month_review", "development_27_30_month_review",
-                           "development_13_15_month_review_domains", "development_27_30_month_review_domains",
-                           "development_13_15_month_review_simd", "development_27_30_month_review_simd")
+                           "development_13_15_month_review", "development_27_30_month_review", "development_4_5_year_review",
+                           "development_13_15_month_review_domains", "development_27_30_month_review_domains", "development_4_5_year_review_domains",
+                           "development_13_15_month_review_simd", "development_27_30_month_review_simd", "development_4_5_year_review_simd")
 
 
 
@@ -160,9 +160,9 @@ dashboard_data <- map(names(dashboard_data), \(x) {
 })
 
 names(dashboard_data) <- c("feeding_first_visit", "feeding_6_8_week_review",
-                           "development_13_15_month_review", "development_27_30_month_review",
-                           "development_13_15_month_review_domains", "development_27_30_month_review_domains",
-                           "development_13_15_month_review_simd", "development_27_30_month_review_simd")
+                           "development_13_15_month_review", "development_27_30_month_review", "development_4_5_year_review",
+                           "development_13_15_month_review_domains", "development_27_30_month_review_domains", "development_4_5_year_review_domains",
+                           "development_13_15_month_review_simd", "development_27_30_month_review_simd", "development_4_5_year_review_simd")
 
 
 
@@ -573,8 +573,8 @@ development_charts <- tabItem(
                  radioGroupButtons(
                    inputId = "development_data",
                    label = "Select the data you want to explore:",
-                   choiceNames = list("13-15 month review", "27-30 month review"),
-                   choiceValues = list("development_13_15_month_review", "development_27_30_month_review"),
+                   choiceNames = list("13-15 month review", "27-30 month review", "4-5 year review"),
+                   choiceValues = list("development_13_15_month_review", "development_27_30_month_review", "development_4_5_year_review"),
                    selected = "development_13_15_month_review",
                    direction = "vertical",
                    justified = TRUE,
