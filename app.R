@@ -9,6 +9,7 @@ library(stringr)
 library(lubridate)
 library(ggplot2)
 library(readr)
+library(forcats)
 
 library(labelled)
 library(data.table)
@@ -58,7 +59,7 @@ HSCPnames <- c("Aberdeen City HSCP", "Aberdeenshire HSCP", "Angus HSCP", "Argyll
 
 
 domains <- read_csv("variable, title
-slc_perc, Speech, language & communication
+             slc_perc, Speech, language & communication
              prob_solv_perc, Problem solving
              gross_motor_perc, Gross motor
              per_soc_perc, Personal/Social
@@ -88,7 +89,7 @@ files <- paste0(extract_date,
 
 #read in each file and put them in a list
 dashboard_data <- map(files, \(x) {
-  read.xlsx(
+  data <- read.xlsx(
     paste0("/PHI_conf/ChildHealthSurveillance/Topics/ChildHealth/Projects/20200707-Covid19-Breastfeeding-and-ChildDevelopment/Output/",
            x)
   ) |> 
@@ -96,13 +97,21 @@ dashboard_data <- map(files, \(x) {
     #make the data we read in tidier
     tibble() |> 
     clean_names() |>
-    select( -any_of("hscp2019_code")) |>
+    select( -any_of(c("hscp2019_code", "pc_valid", "pc_meaningful",
+                      paste0("no_", str_remove(domains$variable, "_perc"))))) |>
     filter(!(geography %in% c("Argyll & Clyde", "Unknown HSCP"))) |>
     mutate(geography = case_when(geography == "Scotland" ~ "All Scotland",
                                  str_ends(geography, "HSCP", negate = TRUE) ~ paste0("NHS ", geography),
                                  TRUE ~ geography) |> factor(levels = c("All Scotland", HBnames, HSCPnames)),
            month_review = as.Date(month_review, origin = ymd("1900-01-01")-2)
     )
+  
+  if(str_ends(x, "SIMD.xlsx")) {
+    data <- data |>
+      filter(simd %in% as.character(1:5))
+  }
+  
+  return(data)
 })
 
 #put names on each of the tibbles
@@ -110,6 +119,64 @@ names(dashboard_data) <- c("feeding_first_visit", "feeding_6_8_week_review",
                            "development_13_15_month_review", "development_27_30_month_review",
                            "development_13_15_month_review_domains", "development_27_30_month_review_domains",
                            "development_13_15_month_review_simd", "development_27_30_month_review_simd")
+
+
+
+
+
+no_cats <- map(dashboard_data, \(x){
+  names(x)[str_ends(names(x), "bf") |
+             str_starts(names(x), "no") |
+             names(x) == "concerns_1_plus"]
+}) |>
+  list_c()
+
+perc_cats <- map(dashboard_data, \(x){
+  names(x)[str_ends(names(x), "perc") |
+             str_starts(names(x), "pc")]
+}) |>
+  list_c()
+
+
+
+
+
+dashboard_data <- map(names(dashboard_data), \(x) {
+  data <- dashboard_data
+  if(str_starts(x, "development")) {
+    data[[x]] <- data[[x]] |>
+      mutate(quarter = fct_reorder(paste(str_extract(qtr(month_review), "^\\w*"),
+                                  str_extract(qtr(month_review), "\\d*$")), 
+                            month_review)) |>
+        filter(quarter != last(levels(quarter))) |>
+      group_by(pick(any_of(c("geography", "quarter", "simd")))) |>
+      summarise(across(any_of(perc_cats),
+                       \(x) {sum(x * no_reviews) / sum(no_reviews)}),
+                across(any_of(no_cats),
+                       sum),
+                .groups = "drop")
+  }
+  return(data[[x]])
+})
+
+names(dashboard_data) <- c("feeding_first_visit", "feeding_6_8_week_review",
+                           "development_13_15_month_review", "development_27_30_month_review",
+                           "development_13_15_month_review_domains", "development_27_30_month_review_domains",
+                           "development_13_15_month_review_simd", "development_27_30_month_review_simd")
+
+
+
+
+
+
+pivoted_data <- map(dashboard_data, \(x) {
+  x |>
+    pivot_longer(cols = any_of(c(no_cats, perc_cats)),
+    names_to = "category",
+    values_to = "number") |>
+    mutate(category = fct(category))
+})
+
 
 
 
@@ -413,18 +480,6 @@ feeding_charts <- tabItem(
                     fluidRow(
                       box(width = 4,
                           uiOutput("geog_comparison_level_select_feeding")
-                          # radioGroupButtons(
-                          #   inputId = "geog_comparison_level_feeding",
-                          #   label = "Select geography level to compare:",
-                          #   choiceNames = list("Health Board", "Council Area"),
-                          #   choiceValues = list("NHS", "HSCP"),
-                          #   selected = "NHS",
-                          #   status = "primary",
-                          #   justified = TRUE,
-                          #   checkIcon = list(
-                          #     yes = icon("circle-check") |> rem_aria_label(),
-                          #     no = icon("circle") |> rem_aria_label())
-                          # )
                       ),
                       box(width = 8, solidHeader = TRUE,
                           uiOutput("geog_comparison_select_feeding")
@@ -434,7 +489,7 @@ feeding_charts <- tabItem(
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           textOutput("feeding_comparison_title"),
-                          plotOutput("feeding_comparison_plot", height = "600px"))
+                          plotlyOutput("feeding_comparison_plotly", height = "600px"))
                     )
            )
            
@@ -593,18 +648,6 @@ development_charts <- tabItem(
                     fluidRow(
                       box(width = 4,
                           uiOutput("geog_comparison_level_select_development")
-                          # radioGroupButtons(
-                          #   inputId = "geog_comparison_level_development",
-                          #   label = "Select geography level to compare:",
-                          #   choiceNames = list("Health Board", "Council Area"),
-                          #   choiceValues = list("NHS", "HSCP"),
-                          #   selected = "NHS",
-                          #   status = "primary",
-                          #   justified = TRUE,
-                          #   checkIcon = list(
-                          #     yes = icon("circle-check") |> rem_aria_label(),
-                          #     no = icon("circle") |> rem_aria_label())
-                          # )
                       ),
                       box(width = 8, solidHeader = TRUE,
                           uiOutput("geog_comparison_select_development")
@@ -613,7 +656,7 @@ development_charts <- tabItem(
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           textOutput("development_comparison_title"),
-                          plotOutput("development_comparison_plot", height = "600px"))
+                          plotlyOutput("development_comparison_plotly", height = "600px"))
                     )
            ),
            
@@ -1015,17 +1058,14 @@ server <- function(input, output, session) {
   })
   
   output$feeding_perc_plotly <- renderPlotly({
-    dashboard_data[[input$feeding_data]] |>
-      filter(geography %in% geog_final()) |>
-      pivot_longer(cols = pc_excl:pc_ever,
-                   names_to = "category",
-                   values_to = "number") |>
-      filter(category %in% input$feeding_type) |>
+    pivoted_data[[input$feeding_data]] |>
+      filter(geography %in% geog_final() &
+             category %in% input$feeding_type) |>
       plot_ly(x = ~ month_review,
               y = ~ number,
               type = "scatter",
               mode = "lines",
-              linetype = ~ category) |>
+              color = ~ category) |>
       config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0,100), 
                           title = list(text = "% of reviews with feeding data")),
@@ -1050,17 +1090,14 @@ server <- function(input, output, session) {
   
   
   output$feeding_numbers_plotly <- renderPlotly({
-    dashboard_data[[input$feeding_data]] |>
-      filter(geography %in% geog_final()) |>
-      pivot_longer(cols = no_reviews:ever_bf,
-                   names_to = "category",
-                   values_to = "number") |>
-      filter(category %in% c("no_reviews", "no_valid_reviews", feeding_type_numbers())) |>
+    pivoted_data[[input$feeding_data]] |>
+      filter(geography %in% geog_final() &
+             category %in% c("no_reviews", "no_valid_reviews", feeding_type_numbers())) |>
       plot_ly(x = ~ month_review,
               y = ~ number,
               type = "scatter",
               mode = "lines",
-              linetype = ~ category) |>
+              color = ~ category) |>
       config(displayModeBar = FALSE)
   })
   
@@ -1077,17 +1114,36 @@ server <- function(input, output, session) {
            feeding_data_name())
   })
   
-  output$feeding_comparison_plot <- renderPlot({
+  
+  output$feeding_comparison_plotly <- renderPlotly({
+    
+    n <- length(input$geog_comparison_list_feeding)
+    nrows <- ceiling(n / ceiling(sqrt(n)))
+    
     if(length(input$geog_comparison_list_feeding) >= 1) {
-      dashboard_data[[input$feeding_data]] |>
-        filter(geography %in% input$geog_comparison_list_feeding) |>
-        pivot_longer(cols = pc_excl:pc_ever,
-                     names_to = "category",
-                     values_to = "number") |>
-        filter(category %in% input$feeding_type) |>
-        ggplot(aes(x = month_review, y = number, color = category)) +
-        geom_line() +
-        facet_wrap(~ geography)
+      pivoted_data[[input$feeding_data]] |>
+        filter(geography %in% input$geog_comparison_list_feeding &
+               category %in% input$feeding_type) |>
+        group_by(geography) %>%
+        do(plots = plot_ly(x = .$month_review,
+                          y = .$number,
+                          type = "scatter",
+                          mode = "lines",
+                          color = .$category) |>
+             layout(showlegend = FALSE,
+                    annotations = list(
+                      x = 0.5,
+                      y = 1.0,
+                      text = .$geography,
+                      xref = "paper",
+                      yref = "paper",
+                      xanchor = "center",
+                      yanchor = "bottom",
+                      showarrow = FALSE
+                    ))) -> plot_list
+      
+      subplot(plot_list$plots, nrows = nrows, shareX = TRUE, shareY = TRUE) |>
+        config(displayModeBar = FALSE)
     }
   })
   
@@ -1133,14 +1189,20 @@ server <- function(input, output, session) {
   
   ##Percentage Concern ----
   output$development_percentage_concern_title <- renderText({
-    paste0("Percentage of children with one or more developmental concerns ",
-           "recorded at the ", 
+    paste0("Percentage of children with one or more developmental concerns
+           recorded at the ", 
            development_data_name())
   })
   
   
   output$development_percentage_concern_plotly <- renderPlotly({
-    create_runchart_plotly(dashboard_data[[input$development_data]], geog_final(), "pc_1_plus") |>
+    dashboard_data[[input$development_data]] |>
+      filter(geography %in% geog_final()) |>
+      plot_ly(x =  ~ quarter,
+              y =  ~ pc_1_plus,
+              type = "scatter",
+              mode = "lines") |>
+      config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0,40)))
   })
   
@@ -1153,22 +1215,17 @@ server <- function(input, output, session) {
            "s; reviews with full meaningful data on child development recorded; ",
            "and children with 1 or more developmental concerns recorded")
   })
-  
   output$development_numbers_plotly <- renderPlotly({
-    dashboard_data[[input$development_data]] |>
-      filter(geography %in% geog_final()) |>
-      pivot_longer(cols = no_reviews:concerns_1_plus,
-                   names_to = "category",
-                   values_to = "number") |>
-      plot_ly(x = ~ month_review,
+    pivoted_data[[input$development_data]] |>
+      filter(geography %in% geog_final() &
+             category != "pc_1_plus") |>
+      plot_ly(x = ~ quarter,
               y = ~ number,
               type = "scatter",
               mode = "lines",
-              linetype = ~ category) |>
+              color = ~ category) |>
       config(displayModeBar = FALSE)
   })
-  
-  
   
   
   ##Concerns by Domain ----
@@ -1179,16 +1236,13 @@ server <- function(input, output, session) {
   })
   
   output$development_concerns_by_domain_plotly <- renderPlotly({
-    dashboard_data[[paste0(input$development_data, "_domains")]] |>
-      pivot_longer(cols = slc_perc:hearing_perc,
-                   names_to = "category",
-                   values_to = "number") |>
+    pivoted_data[[paste0(input$development_data, "_domains")]] |>
       filter(category %in% input$domains_selected) |>
-      plot_ly(x = ~ month_review,
+      plot_ly(x = ~ quarter,
               y = ~ number,
               type = "scatter",
               mode = "lines",
-              linetype = ~ category) |>
+              color = ~ category) |>
       config(displayModeBar = FALSE)
   })
   
@@ -1204,11 +1258,11 @@ server <- function(input, output, session) {
   output$development_concerns_by_simd_plotly <- renderPlotly({
     dashboard_data[[paste0(input$development_data, "_simd")]] |>
       filter(simd %in% input$simd_levels) |>
-      plot_ly(x = ~ month_review,
+      plot_ly(x = ~ quarter,
               y = ~ pc_1_plus,
               type = "scatter",
               mode = "lines",
-              linetype = ~ simd) |>
+              color = ~ simd) |>
       config(displayModeBar = FALSE)  |>
       layout(yaxis = list(range = c(0,30)))
   })
@@ -1220,19 +1274,42 @@ server <- function(input, output, session) {
   
   ##Comparisons ----
   output$development_comparison_title <- renderText({
-    paste0("Comparing Health Boards for percentage exclusively/overall/ever breastfed at ",
+    paste0("Comparing Health Boards for percentage of children with one or more 
+           developmental concerns recorded at the ",
            development_data_name())
   })
   
-  output$development_comparison_plot <- renderPlot({
+  
+  output$development_comparison_plotly <- renderPlotly({
+    
+    n <- length(input$geog_comparison_list_development)
+    nrows <- ceiling(n / ceiling(sqrt(n)))
+    
     if(length(input$geog_comparison_list_development) >= 1) {
       dashboard_data[[input$development_data]] |>
         filter(geography %in% input$geog_comparison_list_development) |>
-        ggplot(aes(x = month_review, y = pc_1_plus)) +
-        geom_line() +
-        facet_wrap(~ geography)
+        group_by(geography) %>%
+        do(plots = plot_ly(x = .$quarter,
+                           y = .$pc_1_plus,
+                           type = "scatter",
+                           mode = "lines") |>
+             layout(showlegend = FALSE,
+                    annotations = list(
+                      x = 0.5,
+                      y = 1.0,
+                      text = .$geography,
+                      xref = "paper",
+                      yref = "paper",
+                      xanchor = "center",
+                      yanchor = "bottom",
+                      showarrow = FALSE
+                    ))) -> plot_list
+      
+      subplot(plot_list$plots, nrows = nrows, shareX = TRUE, shareY = TRUE) |>
+        config(displayModeBar = FALSE)
     }
   })
+  
   
   
   output$geog_comparison_level_select_development <- renderUI({
@@ -1271,21 +1348,21 @@ server <- function(input, output, session) {
   
   #.----
   #Testing! ----
-  output$testing <- renderPrint({
-    str_view(c(paste0("A ", input$geog_level_chosen_feeding),
-               paste0("B ", input$geog_level_chosen_development),
-               paste0("C ", input$geog_chosen_feeding),
-               paste0("D ", input$geog_chosen_development),
-               paste0("H ", selected$geog_level),
-               paste0("I ", selected$geog),
-               paste0("J ", geog_final()),
-               paste0("G ", input$geog_comparison_level_feeding),
-               paste0("H ", input$geog_comparison_level_development),
-               paste0("I ", input$feeding_type),
-               paste0("J ", feeding_type_numbers()),
-               selected$geog_comparison_list
-    ))
-  })
+  # output$testing <- renderPrint({
+  #   str_view(c(paste0("A ", input$geog_level_chosen_feeding),
+  #              paste0("B ", input$geog_level_chosen_development),
+  #              paste0("C ", input$geog_chosen_feeding),
+  #              paste0("D ", input$geog_chosen_development),
+  #              paste0("H ", selected$geog_level),
+  #              paste0("I ", selected$geog),
+  #              paste0("J ", geog_final()),
+  #              paste0("G ", input$geog_comparison_level_feeding),
+  #              paste0("H ", input$geog_comparison_level_development),
+  #              paste0("I ", input$feeding_type),
+  #              paste0("J ", feeding_type_numbers()),
+  #              selected$geog_comparison_list
+  #   ))
+  # })
   
   
 }
