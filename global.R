@@ -67,6 +67,44 @@ domains <- read_csv("variable, title
              hearing_perc, Hearing")
 
 
+#sets colours for each line that appears in the dashboard
+line_colours <- c("#3F3685", #phs-purple
+                  "#9B4393", #phs-magenta
+                  "#9B4393", #phs-magenta
+                  "#1E7F84", #phs-teal
+                  "#C73918", #phs-rust
+                  "#D26146", #phs-rust-80
+                  "#D26146", #phs-rust-80
+                  
+                  "#3F3685", #phs-purple
+                  "#9B4393", #phs-magenta
+                  "#0078D4", #phs-blue
+                  "#83BB26", #phs-green
+                  "#948DA3", #phs-graphite
+                  "#1E7F84", #phs-teal
+                  "#6B5C85", #phs-liberty
+                  "#C73918", #phs-rust
+                  
+                  "#C73918", #phs-rust
+                  "#9B4393", #phs-magenta
+                  "#3F3685", #phs-purple
+                  "#0078D4", #phs-blue
+                  "#83BB26" #phs-green
+) |>
+  setNames(c("Ever breastfed", 
+             "Reviews with 1 or more developmental concerns",
+             "Overall breastfed",
+             "Exclusively breastfed",
+             "Reviews",
+             "Valid reviews",
+             "Meaningful reviews",
+             
+             domains$title,
+             
+             as.character(1:5)
+  ))
+
+
 
 
 
@@ -143,21 +181,34 @@ perc_cats <- map(dashboard_data, \(x){
   list_c()
 
 #aggregate data to be by quarter rather than by month for the child development datasets
+#also made a pre-pandemic median for pc_1_plus
 dashboard_data <- map(names(dashboard_data), \(x) {
   data <- dashboard_data
   if(str_starts(x, "development")) {
     data[[x]] <- data[[x]] |>
+      #create a column marking the quarter
       mutate(quarter = fct_reorder(paste(str_extract(qtr(month_review), "^\\w*"),
                                          str_extract(qtr(month_review), "\\d*$")), 
                                    month_review)) |>
+      #remove incomplete quarters
       filter((quarter != last(levels(quarter))) &
                !(geography == "NHS Greater Glasgow & Clyde" & quarter %in% c("January 2019", "April 2019"))) |>
+      #agggregate by quarter
       group_by(pick(any_of(c("geography", "quarter", "simd")))) |>
       summarise(across(any_of(perc_cats),
                        \(x) {sum(x * no_reviews) / sum(no_reviews)}),
                 across(any_of(no_cats),
                        sum),
                 .groups = "drop")
+    
+      
+      #generate a column which gives the median for before the pandemic
+      if(str_ends(x, "review")) {
+        data[[x]] <- data[[x]] |>
+          group_by(geography) |>
+          mutate(median_pc_1_plus = median(pc_1_plus[str_ends(quarter, "2019") | quarter == "January 2020"], na.rm = TRUE)) |>
+          ungroup()
+      }
   }
   return(data[[x]])
 })
@@ -212,4 +263,3 @@ mytheme <- create_theme(
   #box_border_color = "#FFF"
   #)
 )
-

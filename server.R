@@ -306,6 +306,7 @@ function(input, output, session) {
             type = "scatter",
             mode = "lines",
             color = ~ category,
+            colors = line_colours,
             text = ~ first(geography),
             hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}") |>
       config(displayModeBar = FALSE) |>
@@ -362,6 +363,7 @@ function(input, output, session) {
             type = "scatter",
             mode = "lines",
             color = ~ category,
+            colors = line_colours,
             text = ~ first(geography),
             hovertemplate = "<b>%{text}</b><br>Number of reviews: %{y}<br>Month of review: %{x|%B %Y}") |>
       config(displayModeBar = FALSE) |>
@@ -419,6 +421,7 @@ function(input, output, session) {
                            type = "scatter",
                            mode = "lines",
                            color = .$category,
+                           colors = line_colours,
                            text = first(.$geography),
                            hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}",
                            showlegend = (selected$geog_comparison_list[1] %in% .$geography)) |>
@@ -479,8 +482,21 @@ function(input, output, session) {
             type = "scatter",
             mode = "lines",
             text = ~ first(geography),
+            name = "% of reviews",
+            line = list(color = "#9B4393"), #phs-magenta
             hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x}<extra></extra>") |>
-      config(displayModeBar = FALSE) |>
+      add_trace(y = ~ median_pc_1_plus,
+                name = "Pre-pandemic median",
+                hovertemplate = "<b>%{text}</b><br>Median: %{y:.2f}%<extra></extra>",
+                line = list(color = "#3F3685", #phs-purple
+                            dash = "4")
+      ) |>
+      add_trace(y = ~ median_pc_1_plus / (str_ends(quarter, "2019") | quarter == "January 2020"),
+                showlegend = FALSE,
+                hovertemplate = "<b>%{text}</b><br>Median: %{y:.2f}%<extra></extra>",
+                line = list(color = "#3F3685") #phs-purple
+      ) |>
+    config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0, ymax),
                           title = list(text = "% of reviews")),
              xaxis = list(title = list(text = "Quarter of review")))
@@ -521,6 +537,7 @@ function(input, output, session) {
             type = "scatter",
             mode = "lines",
             color = ~ category,
+            colors = line_colours,
             text = ~ first(geography),
             hovertemplate = "<b>%{text}</b><br>Number of reviews: %{y}<br>Quarter of review: %{x}") |>
       config(displayModeBar = FALSE) |>
@@ -562,6 +579,7 @@ function(input, output, session) {
                            y = .$pc_1_plus,
                            type = "scatter",
                            mode = "lines",
+                           line = list(color = "#9B4393"), #phs-magenta
                            text = first(.$geography),
                            hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x}<extra></extra>") |>
              layout(showlegend = FALSE,
@@ -619,6 +637,7 @@ function(input, output, session) {
             type = "scatter",
             mode = "lines",
             color = ~ title,
+            colors = line_colours,
             text = ~ first(geography),
             hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x}") |>
       config(displayModeBar = FALSE) |>
@@ -659,6 +678,7 @@ function(input, output, session) {
             type = "scatter",
             mode = "lines",
             color = ~ simd,
+            colors = line_colours,
             text = ~ first(geography),
             hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x}") |>
       config(displayModeBar = FALSE) |>
