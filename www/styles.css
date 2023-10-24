@@ -104,8 +104,15 @@ body {
   
 /* to pad bullet points*/  
   
-ul li {
+  
+/* ul li {
  padding: 0 0 4px 23px;
+} */
+
+.bullet-points {
+  padding-left: 20px;
+  padding-bottom: 4px;
 }
+
 
                   
