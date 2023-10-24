@@ -193,39 +193,39 @@ home <- tabItem(
 ##Infant Feeding ----
 feeding_charts <- tabItem(
   tabName = "feeding_charts",
+  
+  #creates the controls which sit outwith tabs
+  fluidRow(
+    box(width = 5,
+        radioGroupButtons(
+          inputId = "feeding_data",
+          label = "Select the data you want to explore:",
+          choiceNames = list("Health Visitor first visit", "6-8 week review"),
+          choiceValues = list("feeding_first_visit", "feeding_6_8_week_review"),
+          selected = "feeding_first_visit",
+          #justified = TRUE,
+          status = "primary",
+          checkIcon = list(
+            yes = icon("circle-check") |> rem_aria_label(),
+            no = icon("circle") |> rem_aria_label())
+        ) #radioGroupButtons
+    ), #box
+    box(width = 5,
+        uiOutput("feeding_type_select")
+    ),
+    box(width = 2, solidHeader = TRUE,
+        downloadButton("", 
+                       "Download data",
+                       icon = shiny::icon("download") |> rem_aria_label()
+        ) 
+    )
+  ),
+  
   fluidRow(
     tabBox(title = "Infant Feeding",
            id = "feeding_charts_tab",
            width = 12,
            height = "25px",
-           
-           
-           fluidRow(
-             box(width = 5,
-                 radioGroupButtons(
-                   inputId = "feeding_data",
-                   label = "Select the data you want to explore:",
-                   choiceNames = list("Health Visitor first visit", "6-8 week review"),
-                   choiceValues = list("feeding_first_visit", "feeding_6_8_week_review"),
-                   selected = "feeding_first_visit",
-                   #justified = TRUE,
-                   status = "primary",
-                   checkIcon = list(
-                     yes = icon("circle-check") |> rem_aria_label(),
-                     no = icon("circle") |> rem_aria_label())
-                 ) #radioGroupButtons
-             ), #box
-             box(width = 5,
-                 uiOutput("feeding_type_select")
-             ),
-             box(width = 2, solidHeader = TRUE,
-                 downloadButton("", 
-                                "Download data",
-                                icon = shiny::icon("download") |> rem_aria_label()
-                 ) 
-             )
-           ),
-           
            
            ###Runcharts ----
            tabPanel(title = "Runcharts",
@@ -366,38 +366,39 @@ feeding_about <- tabItem(
 ##Child Development ----
 development_charts <- tabItem(
   tabName = "development_charts",
+  
+  #creates the controls which sit outwith tabs
+  fluidRow(
+    box(width = 7,
+        radioGroupButtons(
+          inputId = "development_data",
+          label = "Select the data you want to explore:",
+          choiceNames = list("13-15 month review", "27-30 month review", "4-5 year review"),
+          choiceValues = list("development_13_15_month_review", "development_27_30_month_review", "development_4_5_year_review"),
+          selected = "development_13_15_month_review",
+          #justified = TRUE,
+          status = "primary",
+          checkIcon = list(
+            yes = icon("circle-check") |> rem_aria_label(),
+            no = icon("circle") |> rem_aria_label())
+        ) #radioGroupButtons
+    ), #box
+    box(width = 3, solidHeader = TRUE
+    ),
+    box(width = 2, solidHeader = TRUE,
+        downloadButton("", 
+                       "Download data",
+                       icon = shiny::icon("download") |> rem_aria_label()
+        ) 
+    )
+  ), #fluidRow
+  
   fluidRow(
     tabBox(title = "Child Development",
            id = "development_charts_tab",
            width = 12,
            height = "25px",
-           
-           fluidRow(
-             box(width = 7,
-                 radioGroupButtons(
-                   inputId = "development_data",
-                   label = "Select the data you want to explore:",
-                   choiceNames = list("13-15 month review", "27-30 month review", "4-5 year review"),
-                   choiceValues = list("development_13_15_month_review", "development_27_30_month_review", "development_4_5_year_review"),
-                   selected = "development_13_15_month_review",
-                   #justified = TRUE,
-                   status = "primary",
-                   checkIcon = list(
-                     yes = icon("circle-check") |> rem_aria_label(),
-                     no = icon("circle") |> rem_aria_label())
-                 ) #radioGroupButtons
-             ), #box
-             box(width = 3, solidHeader = TRUE
-             ),
-             box(width = 2, solidHeader = TRUE,
-                 downloadButton("", 
-                                "Download data",
-                                icon = shiny::icon("download") |> rem_aria_label()
-                 ) 
-             )
-           ), #fluidRow
-           
-           
+
            ###Runcharts ----
            tabPanel(title = "Runcharts",
                     fluidRow(
