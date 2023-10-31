@@ -15,7 +15,7 @@ header <- dashboardHeader(
   title = dashboardtitle,
   titleWidth = 290,
   tags$li(class = "dropdown",
-          tags$p("Child Health Dashboard v0.1")
+          tags$p("Health in the Early Years in Scotland (HEYS) Dashboard v0.1")
   )
 )
 
@@ -88,7 +88,7 @@ home <- tabItem(
                                  uiOutput("test_home"),
                                  uiOutput("test_home2"),
                                  
-                                 h1("Welcome to the Child Health Dashboard"),
+                                 h1("Welcome to the Health in the Early Years in Scotland (HEYS) Dashboard"),
                                  
                                  p("This dashboard has been developed by Public Health Scotland to 
                                    display data on child health throughout Scotland. It follows on
@@ -201,8 +201,8 @@ feeding_charts <- tabItem(
           inputId = "feeding_data",
           label = "Select the data you want to explore:",
           choiceNames = list("Health Visitor first visit", "6-8 week review"),
-          choiceValues = list("feeding_first_visit", "feeding_6_8_week_review"),
-          selected = "feeding_first_visit",
+          choiceValues = feeding_data_options,
+          selected = "firstvisit",
           #justified = TRUE,
           status = "primary",
           checkIcon = list(
@@ -374,8 +374,8 @@ development_charts <- tabItem(
           inputId = "development_data",
           label = "Select the data you want to explore:",
           choiceNames = list("13-15 month review", "27-30 month review", "4-5 year review"),
-          choiceValues = list("development_13_15_month_review", "development_27_30_month_review", "development_4_5_year_review"),
-          selected = "development_13_15_month_review",
+          choiceValues = development_data_options,
+          selected = "13-15m",
           #justified = TRUE,
           status = "primary",
           checkIcon = list(
@@ -471,9 +471,8 @@ development_charts <- tabItem(
                           checkboxGroupButtons(
                             inputId = "domains_selected",
                             label = "Select which domains to include in the plot:",
-                            choiceNames = domains$title,
-                            choiceValues = domains$variable,
-                            selected = domains$variable,
+                            choices = domains,
+                            selected = domains,
                             status = "primary",
                             checkIcon = list(
                               yes = icon("square-check") |> rem_aria_label(),

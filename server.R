@@ -151,7 +151,7 @@ function(input, output, session) {
       switch(selected$geog_level,
              "All Scotland" = "Scotland",
              "Health Board" = HBnames,
-             "Council Area" = HSCPnames)
+             "Council Area" = CAnames)
     }
   })
   
@@ -189,7 +189,7 @@ function(input, output, session) {
       c("All Scotland", 
         switch(selected$geog_comparison_level,
                "Health Board" = HBnames,
-               "Council Area" = HSCPnames))
+               "Council Area" = CAnames))
     }
   })
   
@@ -224,15 +224,15 @@ function(input, output, session) {
   #Versions of Names ----
   feeding_data_name <- reactive({
     switch(input$feeding_data,
-           "feeding_first_visit" = "health visitor first visit",
-           "feeding_6_8_week_review" = "6-8 week review")
+           "firstvisit" = "health visitor first visit",
+           "6-8 week" = "6-8 week review")
   })
   
   development_data_name <- reactive({
     switch(input$development_data,
-           "development_13_15_month_review" = "13-15 month review",
-           "development_27_30_month_review" = "27-30 month review",
-           "development_4_5_year_review" = "4-5 year review")
+           "13-15m" = "13-15 month review",
+           "27-30m" = "27-30 month review",
+           "4-5y" = "4-5 year review")
   })
   
   
@@ -250,8 +250,8 @@ function(input, output, session) {
   #if the 6-8 week review data is selected
   feeding_choices <- reactive({
     switch(input$feeding_data,
-           "feeding_first_visit" = c("Ever breastfed", "Overall breastfed", "Exclusively breastfed"), 
-           "feeding_6_8_week_review" = c("Overall breastfed", "Exclusively breastfed"))
+           "firstvisit" = c("Ever breastfed", "Overall breastfed", "Exclusively breastfed"), 
+           "6-8 week" = c("Overall breastfed", "Exclusively breastfed"))
   })
   
   #takes choice on which options to display from ever, overall and exclusively breastfed
@@ -282,15 +282,17 @@ function(input, output, session) {
   
   #wrangles the data to be fed into the plot
   feeding_perc_data <- reactive({
-    pivoted_data[[input$feeding_data]] |>
-      mutate(category = fct(case_when(category == "pc_ever" ~ "Ever breastfed",
-                                      category == "pc_overall" ~ "Overall breastfed",
-                                      category == "pc_excl" ~ "Exclusively breastfed",
-                                      TRUE ~ category))) |>
+    data <- feeding_percentage_data[[input$feeding_data]] |>
       filter(geography %in% geog_final() &
-               str_detect(category, " ")) |>
-      mutate(category = fct_reorder2(category, month_review, measure)) |>
-      filter(category %in% input$feeding_type)
+             category %in% input$feeding_type)
+    
+    #calculates the median if only one feeding option is selected
+    if(length(input$feeding_type) == 1) {
+      data <- data |>
+        mutate(median = median(measure[date <= ymd("2020-02-01")], na.rm = TRUE))
+    }
+    
+    return(data)
   })
   
   
@@ -298,17 +300,36 @@ function(input, output, session) {
   output$feeding_perc_plotly <- renderPlotly({
     
     data <- feeding_perc_data()
-    ymax <- min(c(max(data$measure), 100))
+    ymax <- min(c(max(c(data$measure, 0)), 100))
     
-    plot_ly(data = data,
-            x = ~ month_review,
-            y = ~ measure,
-            type = "scatter",
-            mode = "lines",
-            color = ~ category,
-            colors = line_colours,
-            text = ~ first(geography),
-            hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}") |>
+    plot <- plot_ly(data = data,
+                    x = ~ date,
+                    y = ~ measure,
+                    type = "scatter",
+                    mode = "lines",
+                    color = ~ category,
+                    colors = line_colours,
+                    text = ~ first(geography),
+                    hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}"
+                    )
+      
+    
+    if(length(input$feeding_type) == 1) {
+      plot <- plot |>
+        add_trace(y = ~ median,
+                  name = "Pre-pandemic median",
+                  hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%",
+                  line = list(color = line_colours[input$feeding_type], #match the other present line colour
+                              dash = "4")
+                  ) |>
+        add_trace(y = ~ median / (date <= ymd("2020-02-01")),
+                  showlegend = FALSE,
+                  hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%",
+                  line = list(color = line_colours[input$feeding_type])  #match the other present line colour
+                  )
+    }
+    
+    plot |>
       config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0, ymax), 
                           title = list(text = "% of reviews")),
@@ -337,28 +358,20 @@ function(input, output, session) {
   })
   
   #wrangles the data to be fed into the plot
-  feeding_numbers_data <- reactive({
-    pivoted_data[[input$feeding_data]] |>
-      mutate(category = fct(case_when(category == "ever_bf" ~ "Ever breastfed",
-                                      category == "overall_bf" ~ "Overall breastfed",
-                                      category == "exclusive_bf" ~ "Exclusively breastfed",
-                                      category == "no_reviews" ~ "Reviews",
-                                      category == "no_valid_reviews" ~ "Valid reviews",
-                                      TRUE ~ category))) |>
+  feeding_nums_data <- reactive({
+    feeding_numbers_data[[input$feeding_data]] |>
       filter(geography %in% geog_final() &
-               str_detect(category, " |R")) |>
-      mutate(category = fct_reorder2(category, month_review, measure)) |>
-      filter(category %in% c("Reviews", "Valid reviews", input$feeding_type))
+               category %in% c("Reviews", "Valid reviews", input$feeding_type))
   })
   
   #creates the plot to be displayed
   output$feeding_numbers_plotly <- renderPlotly({
     
-    data <- feeding_numbers_data()
-    ymax <- max(data$measure)
+    data <- feeding_nums_data()
+    ymax <- max(c(data$measure, 0))
     
     plot_ly(data = data,
-            x = ~ month_review,
+            x = ~ date,
             y = ~ measure,
             type = "scatter",
             mode = "lines",
@@ -396,15 +409,9 @@ function(input, output, session) {
   
   #wrangles the data to be fed into the plots
   feeding_comparison_data <- reactive({
-    pivoted_data[[input$feeding_data]] |>
-      mutate(category = fct(case_when(category == "pc_ever" ~ "Ever breastfed",
-                                      category == "pc_overall" ~ "Overall breastfed",
-                                      category == "pc_excl" ~ "Exclusively breastfed",
-                                      TRUE ~ category))) |>
+    feeding_percentage_data[[input$feeding_data]] |>
       filter(geography %in% selected$geog_comparison_list &
-               str_detect(category, " ")) |>
-      mutate(category = fct_reorder2(category, month_review, measure)) |>
-      filter(category %in% input$feeding_type)
+               category %in% input$feeding_type)
   })
   
   #creates the plot grid to be displayed
@@ -412,11 +419,11 @@ function(input, output, session) {
     if(length(selected$geog_comparison_list) >= 1) {
       
       data <- feeding_comparison_data()
-      ymax <- min(c(max(data$measure), 100))
+      ymax <- min(c(max(c(data$measure, 0)), 100))
       
       data |>      
         group_by(geography) %>%
-        do(plots = plot_ly(x = .$month_review,
+        do(plots = plot_ly(x = .$date,
                            y = .$measure,
                            type = "scatter",
                            mode = "lines",
@@ -443,7 +450,10 @@ function(input, output, session) {
                            title = list(text = "Feeding Type"))
              )) -> plot_list
       
-      subplot(plot_list$plots, nrows = nrows(), shareX = TRUE, shareY = TRUE) |>
+      subplot(plot_list$plots, nrows = nrows(), 
+              shareX = TRUE, shareY = TRUE,
+              margin = c(0.02, 0.02, 0.03, 0.03)
+              ) |>
         config(displayModeBar = FALSE)
       
     }
@@ -466,7 +476,7 @@ function(input, output, session) {
   
   #wrangles the data to be fed into the plot
   development_percentage_concern_data <- reactive({
-    dashboard_data[[input$development_data]] |>
+    development_percentage_data[[input$development_data]] |>
       filter(geography %in% geog_final())
   })
   
@@ -474,27 +484,27 @@ function(input, output, session) {
   output$development_percentage_concern_plotly <- renderPlotly({
     data <- development_percentage_concern_data()
     
-    ymax <- max(data$pc_1_plus)
+    ymax <- max(data$measure)
     
     plot_ly(data = data,
-            x =  ~ quarter,
-            y =  ~ pc_1_plus,
+            x =  ~ date,
+            y =  ~ measure,
             type = "scatter",
             mode = "lines",
             text = ~ first(geography),
             name = "% of reviews",
             line = list(color = "#9B4393"), #phs-magenta
-            hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x}<extra></extra>") |>
-      add_trace(y = ~ median_pc_1_plus,
+            hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}<extra></extra>") |>
+      add_trace(y = ~ median,
                 name = "Pre-pandemic median",
-                hovertemplate = "<b>%{text}</b><br>Median: %{y:.2f}%<extra></extra>",
-                line = list(color = "#3F3685", #phs-purple
+                hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                line = list(color = "#9B4393", #phs-magenta
                             dash = "4")
       ) |>
-      add_trace(y = ~ median_pc_1_plus / (str_ends(quarter, "2019") | quarter == "January 2020"),
+      add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                 showlegend = FALSE,
-                hovertemplate = "<b>%{text}</b><br>Median: %{y:.2f}%<extra></extra>",
-                line = list(color = "#3F3685") #phs-purple
+                hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                line = list(color = "#9B4393") #phs-magenta
       ) |>
     config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0, ymax),
@@ -515,31 +525,26 @@ function(input, output, session) {
   })
   
   #wrangles the data to be fed into the plot
-  development_numbers_data <- reactive({
-    pivoted_data[[input$development_data]] |>
-      mutate(category = fct(case_when(category == "no_reviews" ~ "Reviews",
-                                      category == "no_meaningful_reviews" ~ "Meaningful reviews",
-                                      category == "concerns_1_plus" ~ "Reviews with 1 or more developmental concerns",
-                                      TRUE ~ category))) |>
-      filter(geography %in% geog_final() &
-               category != "pc_1_plus")
+  development_nums_data <- reactive({
+    development_numbers_data[[input$development_data]] |>
+      filter(geography %in% geog_final())
   })
   
   #creates the plot to be displayed
   output$development_numbers_plotly <- renderPlotly({
     
-    data <- development_numbers_data()
+    data <- development_nums_data()
     ymax <- max(data$measure)
     
     plot_ly(data = data,
-            x = ~ quarter,
+            x = ~ date,
             y = ~ measure,
             type = "scatter",
             mode = "lines",
             color = ~ category,
             colors = line_colours,
             text = ~ first(geography),
-            hovertemplate = "<b>%{text}</b><br>Number of reviews: %{y}<br>Quarter of review: %{x}") |>
+            hovertemplate = "<b>%{text}</b><br>Number of reviews: %{y}<br>Quarter of review: %{x|%B %Y}") |>
       config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0, ymax),
                           title = list(text = "Number of reviews")),
@@ -562,7 +567,7 @@ function(input, output, session) {
   
   #wrangles the data to be fed into the plots
   development_comparison_data <- reactive({
-    dashboard_data[[input$development_data]] |>
+    development_percentage_data[[input$development_data]] |>
       filter(geography %in% selected$geog_comparison_list)
   })
   
@@ -571,17 +576,17 @@ function(input, output, session) {
     if(length(selected$geog_comparison_list) >= 1) {
       
       data <- development_comparison_data()
-      ymax <- max(data$pc_1_plus)
+      ymax <- max(data$measure)
       
       data |>
         group_by(geography) %>%
-        do(plots = plot_ly(x = .$quarter,
-                           y = .$pc_1_plus,
+        do(plots = plot_ly(x = .$date,
+                           y = .$measure,
                            type = "scatter",
                            mode = "lines",
                            line = list(color = "#9B4393"), #phs-magenta
                            text = first(.$geography),
-                           hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x}<extra></extra>") |>
+                           hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}<extra></extra>") |>
              layout(showlegend = FALSE,
                     annotations = list(
                       x = 0.5,
@@ -598,7 +603,10 @@ function(input, output, session) {
                     xaxis = list(title = list(text = "Quarter of review"))
              )) -> plot_list
       
-      subplot(plot_list$plots, nrows = nrows(), shareX = TRUE, shareY = TRUE) |>
+      subplot(plot_list$plots, nrows = nrows(), 
+              shareX = TRUE, shareY = TRUE, 
+              margin = c(0.02, 0.02, 0.03, 0.03)
+              ) |>
         config(displayModeBar = FALSE)
     }
   })
@@ -619,10 +627,15 @@ function(input, output, session) {
   
   #wrangles the data to be fed into the plot
   development_concerns_by_domain_data <- reactive({
-    pivoted_data[[paste0(input$development_data, "_domains")]] |>
-      left_join(domains, by = join_by(category == variable)) |>
-      mutate(title = fct_reorder2(title, quarter, measure)) |>
+    data <- domains_data[[input$development_data]] |>
       filter(category %in% input$domains_selected)
+    
+    if(length(input$domains_selected) == 1) {
+      data <- data |>
+        mutate(median = median(measure[date <= ymd("2020-02-01")], na.rm = TRUE))
+    }
+    
+    return(data)
   })
   
   #creates the plot to be displayed
@@ -631,15 +644,31 @@ function(input, output, session) {
     data <- development_concerns_by_domain_data()
     ymax <- max(data$measure)
     
-    plot_ly(data = data,
-            x = ~ quarter,
+    plot <- plot_ly(data = data,
+            x = ~ date,
             y = ~ measure,
             type = "scatter",
             mode = "lines",
-            color = ~ title,
+            color = ~ category,
             colors = line_colours,
-            text = ~ first(geography),
-            hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x}") |>
+            hovertemplate = "<b>All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}")
+    
+    if(length(input$domains_selected) == 1) {
+      plot <- plot |>
+        add_trace(y = ~ median,
+                  name = "Pre-pandemic median",
+                  hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%",
+                  line = list(color = line_colours[input$domains_selected], #match the other present line colour
+                              dash = "4")
+        ) |>
+        add_trace(y = ~ median / (date <= ymd("2020-02-01")),
+                  showlegend = FALSE,
+                  hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%",
+                  line = list(color = line_colours[input$domains_selected])  #match the other present line colour
+        )
+    }
+    
+    plot |>
       config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0, ymax),
                           title = list(text = "% of reviews")),
@@ -662,25 +691,48 @@ function(input, output, session) {
   
   #wrangles the data to be fed into the plot
   development_concerns_by_simd_data <- reactive({
-    dashboard_data[[paste0(input$development_data, "_simd")]] |>
-      filter(simd %in% input$simd_levels)
+    data <- simd_data[[input$development_data]] |>
+      filter(category %in% input$simd_levels)
+    
+    if(length(input$simd_levels) == 1) {
+      data <- data |>
+        mutate(median = median(measure[date <= ymd("2020-02-01")], na.rm = TRUE))
+    }
+    
+    return(data)
   })
   
   #creates the plot to be displayed
   output$development_concerns_by_simd_plotly <- renderPlotly({
     
     data <- development_concerns_by_simd_data()
-    ymax <- max(data$pc_1_plus)
+    ymax <- max(data$measure)
     
-    plot_ly(data = data,
-            x = ~ quarter,
-            y = ~ pc_1_plus,
+    plot <- plot_ly(data = data,
+            x = ~ date,
+            y = ~ measure,
             type = "scatter",
             mode = "lines",
-            color = ~ simd,
+            color = ~ category,
             colors = line_colours,
-            text = ~ first(geography),
-            hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x}") |>
+            hovertemplate = "<b>All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}")
+    
+    if(length(input$simd_levels) == 1) {
+      plot <- plot |>
+        add_trace(y = ~ median,
+                  name = "Pre-pandemic median",
+                  hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%",
+                  line = list(color = line_colours[input$simd_levels], #match the other present line colour
+                              dash = "4")
+        ) |>
+      add_trace(y = ~ median / (date <= ymd("2020-02-01")),
+                showlegend = FALSE,
+                hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%",
+                line = list(color = line_colours[input$simd_levels])  #match the other present line colour
+      )
+    }
+    
+    plot |>
       config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0, ymax),
                           title = list(text = "% of reviews")),
@@ -699,22 +751,12 @@ function(input, output, session) {
   
   #.----
   #Testing! ----
-  #little sidebar dev app to display variables for testing
+  # little sidebar dev app to display variables for testing
   # output$testing <- renderPrint({
-  #   str_view(c(paste0("A ", input$geog_level_chosen_feeding),
-  #              paste0("B ", input$geog_level_chosen_development),
-  #              paste0("C ", input$geog_chosen_feeding),
-  #              paste0("D ", input$geog_chosen_development),
-  #              paste0("H ", selected$geog_level),
-  #              paste0("I ", selected$geog),
-  #              paste0("J ", geog_final()),
-  #              paste0("G ", input$geog_comparison_level_feeding),
-  #              paste0("H ", input$geog_comparison_level_development),
-  #              paste0("I ", input$feeding_type),
-  #              paste0("J ", feeding_type_numbers()),
-  #              selected$geog_comparison_list
+  #   str_view(c(paste0("A ", input$feeding_type),
+  #              paste0("B ", line_colours[input$feeding_type])
   #   ))
   # })
-  
+
   
 }
