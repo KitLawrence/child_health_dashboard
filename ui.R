@@ -1,5 +1,6 @@
 
 
+
 #header ----
 #makes the logo that goes in the top left corner of the dashboard
 dashboardtitle <- tags$a(href = "https://www.publichealthscotland.scot/",
@@ -64,6 +65,15 @@ sidebar <- dashboardSidebar(
   
   useShinyjs(),    #must be included to make javascript stuff happen
   
+  uiOutput("feeding_data_select"),
+  uiOutput("feeding_type_select"),
+  uiOutput("development_data_select"),
+  
+  
+  #initialises input$sidebarMenu 
+  hidden(textInput(inputId = "sidebarMenu", label = "", value = "home")),
+  uiOutput("feeding_data_initialise"),
+  uiOutput("development_data_initialise"),
   #dev panel to track variables
   verbatimTextOutput("testing")
 )
@@ -114,8 +124,8 @@ home <- tabItem(
                                    tab which gives specific information and context for that indicator."),
                                  
                                  p("The \"Charts\" page for each indicator has several tabs displaying the 
-                                   data in different ways. Firstly, the \"Runcharts\" tab allows users
-                                   to see data displays for a singular region. Secondly, the \"Comparisons\" 
+                                   data in different ways. Firstly, the \"Individual region charts\" tab allows users
+                                   to see data displays for a singular region. Secondly, the \"Regional comparisons\" 
                                    tab allows users to see data plots for different regions alongside each 
                                    other. Users can pick what region(s) to display in each of these tabs,
                                    with the data being available to display by Council Area, by Health Board,
@@ -143,8 +153,8 @@ home <- tabItem(
                     ))
            ),  #tabPanel ("Welcome")
            
-           ###Identifying Patterns ----
-           tabPanel(title = "Identifying Patterns",
+           ###Identifying patterns ----
+           tabPanel(title = "Identifying patterns",
                     fluidRow(box(width = 11,
                                  solidHeader = TRUE,
                                  h1("How we identify patterns in the data"),
@@ -193,57 +203,33 @@ home <- tabItem(
 ##Infant Feeding ----
 feeding_charts <- tabItem(
   tabName = "feeding_charts",
-  
-  #creates the controls which sit outwith tabs
-  fluidRow(
-    box(width = 5,
-        radioGroupButtons(
-          inputId = "feeding_data",
-          label = "Select the data you want to explore:",
-          choiceNames = list("Health Visitor first visit", "6-8 week review"),
-          choiceValues = feeding_data_options,
-          selected = "firstvisit",
-          #justified = TRUE,
-          status = "primary",
-          checkIcon = list(
-            yes = icon("circle-check") |> rem_aria_label(),
-            no = icon("circle") |> rem_aria_label())
-        ) #radioGroupButtons
-    ), #box
-    box(width = 5,
-        uiOutput("feeding_type_select")
-    ),
-    box(width = 2, solidHeader = TRUE,
-        downloadButton("", 
-                       "Download data",
-                       icon = shiny::icon("download") |> rem_aria_label()
-        ) 
-    )
-  ),
-  
   fluidRow(
     tabBox(title = "Infant Feeding",
            id = "feeding_charts_tab",
            width = 12,
            height = "25px",
            
-           ###Runcharts ----
-           tabPanel(title = "Runcharts",
+           ###Individual region charts ----
+           tabPanel(title = "Individual region charts",
                     fluidRow(
-                      box(width = 5,
+                      box(width = 5, solidHeader = TRUE,
                           uiOutput("geog_level_select_feeding")
                       ),
                       box(width = 4, solidHeader = TRUE,
                           uiOutput("geog_select_feeding")
                       ),
-                      box(width = 3, solidHeader = TRUE
+                      box(width = 3, solidHeader = TRUE,
+                          downloadButton(outputId = "feeding_download", 
+                                         label = "Download infant feeding data",
+                                         icon = shiny::icon("download") |> rem_aria_label()
+                          ) 
                       )
                     ), #fluidRow
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("feeding_perc_title"), style = "text-align: center;"),
-                          plotlyOutput("feeding_perc_plotly", height = "300px")
+                          loading(plotlyOutput("feeding_perc_plotly", height = "300px"))
                       ),
                       box(width = 12, solidHeader = TRUE,
                           p("We have used ‘run charts’ to present the data above. 
@@ -268,28 +254,34 @@ feeding_charts <- tabItem(
                       
                       box(width = 12,
                           h4(textOutput("feeding_numbers_title"), style = "text-align: center;"),
-                          plotlyOutput("feeding_numbers_plotly", height = "300px")
+                          loading(plotlyOutput("feeding_numbers_plotly", height = "300px"))
                       )
                     )
            ), #tabPanel ("Runcharts")
            
            
            
-           ###Comparisons ----
-           tabPanel(title = "Comparisons",
+           ###Regional comparisons ----
+           tabPanel(title = "Regional comparisons",
                     fluidRow(
-                      box(width = 4,
+                      box(width = 4, solidHeader = TRUE,
                           uiOutput("geog_comparison_level_select_feeding")
                       ),
-                      box(width = 8, solidHeader = TRUE,
+                      box(width = 6, solidHeader = TRUE,
                           uiOutput("geog_comparison_select_feeding")
-                      )
+                      ),
+                      box(width = 2, solidHeader = TRUE,
+                          br(),
+                          actionButton(inputId = "update_feeding_comparison",
+                                       label = "Update View")
+                          )
                     ),
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("feeding_comparison_title"), style = "text-align: center;"),
-                          plotlyOutput("feeding_comparison_plotly", height = "600px"))
+                          loading(plotlyOutput("feeding_comparison_plotly", height = "600px"))
+                          )
                     )
            )
            
@@ -366,56 +358,33 @@ feeding_about <- tabItem(
 ##Child Development ----
 development_charts <- tabItem(
   tabName = "development_charts",
-  
-  #creates the controls which sit outwith tabs
-  fluidRow(
-    box(width = 7,
-        radioGroupButtons(
-          inputId = "development_data",
-          label = "Select the data you want to explore:",
-          choiceNames = list("13-15 month review", "27-30 month review", "4-5 year review"),
-          choiceValues = development_data_options,
-          selected = "13-15m",
-          #justified = TRUE,
-          status = "primary",
-          checkIcon = list(
-            yes = icon("circle-check") |> rem_aria_label(),
-            no = icon("circle") |> rem_aria_label())
-        ) #radioGroupButtons
-    ), #box
-    box(width = 3, solidHeader = TRUE
-    ),
-    box(width = 2, solidHeader = TRUE,
-        downloadButton("", 
-                       "Download data",
-                       icon = shiny::icon("download") |> rem_aria_label()
-        ) 
-    )
-  ), #fluidRow
-  
   fluidRow(
     tabBox(title = "Child Development",
            id = "development_charts_tab",
            width = 12,
            height = "25px",
 
-           ###Runcharts ----
-           tabPanel(title = "Runcharts",
+           ###Individual region charts ----
+           tabPanel(title = "Individual region charts",
                     fluidRow(
-                      box(width = 5,
+                      box(width = 5, solidHeader = TRUE,
                           uiOutput("geog_level_select_development")
                       ),
-                      box(width = 5, solidHeader = TRUE,
+                      box(width = 4, solidHeader = TRUE,
                           uiOutput("geog_select_development")
                       ),
-                      box(width = 2, solidHeader = TRUE
+                      box(width = 3, solidHeader = TRUE,
+                          downloadButton(outputId = "development_download", 
+                                         label = "Download child development data",
+                                         icon = shiny::icon("download") |> rem_aria_label()
+                          )
                       ) 
                     ), #fluidRow
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_percentage_concern_title"), style = "text-align: center;"),
-                          plotlyOutput("development_percentage_concern_plotly", height = "300px"),
+                          loading(plotlyOutput("development_percentage_concern_plotly", height = "300px")),
                           
                           p("We have used ‘run charts’ to present the data above. 
                           Run charts use a series of rules to help identify unusual 
@@ -440,34 +409,41 @@ development_charts <- tabItem(
                       
                       box(width = 12,
                           h4(textOutput("development_numbers_title"), style = "text-align: center;"),
-                          plotlyOutput("development_numbers_plotly", height = "300px")
+                          loading(plotlyOutput("development_numbers_plotly", height = "300px"))
                       )
                     ) #fluidRow
            ), #tabPanel ("Runcharts")
            
            
            
-           ###Comparisons ----
-           tabPanel(title = "Comparisons",
+           ###Regional comparisons ----
+           tabPanel(title = "Regional comparisons",
                     fluidRow(
-                      box(width = 4,
+                      box(width = 4, solidHeader = TRUE,
                           uiOutput("geog_comparison_level_select_development")
                       ),
-                      box(width = 8, solidHeader = TRUE,
+                      box(width = 6, solidHeader = TRUE,
                           uiOutput("geog_comparison_select_development")
+                      ),
+                      box(width = 2, solidHeader = TRUE,
+                          br(),
+                          actionButton(inputId = "update_development_comparison",
+                                       label = "Update View")
                       )
                     ),
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_comparison_title"), style = "text-align: center;"),
-                          plotlyOutput("development_comparison_plotly", height = "600px"))
+                          loading(plotlyOutput("development_comparison_plotly", height = "600px"))
+                          )
                     )
            ),
            
-           ###Domains ----
-           tabPanel(title = "Domains",
+           ###Developmental domains ----
+           tabPanel(title = "Developmental domains",
+                    
                     fluidRow(
-                      box(width = 12,
+                      box(width = 9, solidHeader = TRUE,
                           checkboxGroupButtons(
                             inputId = "domains_selected",
                             label = "Select which domains to include in the plot:",
@@ -477,18 +453,30 @@ development_charts <- tabItem(
                             checkIcon = list(
                               yes = icon("square-check") |> rem_aria_label(),
                               no = icon("square") |> rem_aria_label())
-                          ),
+                          )
+                      ),
+                      box(width = 3, solidHeader = TRUE,
+                          downloadButton(outputId = "domains_download", 
+                                         label = "Download developmental domains data",
+                                         icon = shiny::icon("download") |> rem_aria_label()
+                          ) 
+                      )
+                    ), #fluidRow
+                    
+                    fluidRow(
+                      box(width = 12, solidHeader = TRUE,
+                          
                           h4(textOutput("development_concerns_by_domain_title"), style = "text-align: center;"),
-                          plotlyOutput("development_concerns_by_domain_plotly", height = "300px")
+                          loading(plotlyOutput("development_concerns_by_domain_plotly", height = "300px"))
                       )
                     )
            ),
            
            
-           ###SIMD ----
-           tabPanel(title = "SIMD",
+           ###SIMD quintiles ----
+           tabPanel(title = "SIMD quintiles",
                     fluidRow(
-                      box(width = 12,
+                      box(width = 9, solidHeader = TRUE,
                           checkboxGroupButtons(
                             inputId = "simd_levels",
                             label = "Select which SIMD quintiles to show. This 
@@ -500,9 +488,20 @@ development_charts <- tabItem(
                             checkIcon = list(
                               yes = icon("square-check") |> rem_aria_label(),
                               no = icon("square") |> rem_aria_label())
+                            )
                           ),
+                      box(width = 3, solidHeader = TRUE,
+                          downloadButton(outputId = "simd_download", 
+                                         label = "Download SIMD data",
+                                         icon = shiny::icon("download") |> rem_aria_label()
+                                         ) 
+                          )
+                    ), #fluidRow
+                    
+                    fluidRow(
+                      box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_concerns_by_simd_title"), style = "text-align: center;"),
-                          plotlyOutput("development_concerns_by_simd_plotly", height = "300px")
+                          loading(plotlyOutput("development_concerns_by_simd_plotly", height = "300px"))
                       )
                     )
            )
@@ -638,7 +637,7 @@ tagList( #needed for shinyjs
   tags$head(HTML("<html lang='en'>"),
             tags$link(rel="shortcut icon",
                       href="favicon_phs.ico"), # Icon for browser tab
-            tags$title("Child Health Dashboard")
+            tags$title("HEYS Dashboard")
   ),
   # Including Google analytics
   # includeScript("google-analytics.js")),
