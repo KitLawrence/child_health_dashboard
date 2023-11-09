@@ -27,9 +27,11 @@ library(fresh)
 #library(phsstyles)
 #library(phsmethods)
 
-
+#all functions used in dashboard
 source("functions.R")
 
+#credentials for login
+credentials <- readRDS("admin/credentials.rds")
 
 
 #reference lists ----
@@ -79,6 +81,7 @@ line_colours <- c("#3F3685", #phs-purple
                   "#0078D4", #phs-blue
                   "#83BB26" #phs-green
 ) |>
+  #name each of the elements after variables in plots so plots can refer to these names
   setNames(c("Ever breastfed", 
              "Reviews with 1 or more developmental concerns",
              "Overall breastfed",
@@ -86,13 +89,11 @@ line_colours <- c("#3F3685", #phs-purple
              "Reviews",
              "Valid reviews",
              "Meaningful reviews",
-             
              domains,
-             
              as.character(1:5)
   ))
 
-
+#list of symbols to use in domains graph, as the default only assigns 6 symbols
 domain_symbols <- c("circle", "triangle-down", "square", "diamond", "star", "cross", "x", "hourglass") |>
   setNames(domains)
 
@@ -113,7 +114,7 @@ load("data/heys_data.Rdata")
 
 
 #mytheme ----
-#must create a theme to make the colours match PHS colours
+#must create a custom theme to make the colours on dashboard match PHS colours
 mytheme <- create_theme(
   adminlte_color(
     light_blue = "#9B4393" # header bar = PHS-magenta

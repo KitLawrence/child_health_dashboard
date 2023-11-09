@@ -1,6 +1,16 @@
-
+#START OF SCRIPT ----
 
 function(input, output, session) {
+  
+    #these two elements create the dashboard authentication 
+    res_auth <- secure_server(
+      check_credentials = check_credentials(credentials)
+    )
+    
+    output$auth_output <- renderPrint({
+      reactiveValuesToList(res_auth)
+    })
+  
   
   #Geography Control ----
   #takes geography level choice from infant feeding tab
@@ -246,20 +256,22 @@ function(input, output, session) {
   #.----
   #Infant Feeding ----
   
+  #allows user to select which infant feeding dataset to see
   output$feeding_data_select <- renderUI({
-    if("feeding_charts" %in% input$sidebarMenu) {
+    if("feeding_charts" %in% input$sidebarMenu) { #only appear when on the infant feeding charts page
       radioButtons(
         inputId = "feeding_data",
         label = "Select the data you want to explore:",
         choiceNames = list("Health Visitor first visit", "6-8 week review"),
         choiceValues = feeding_data_options,
         selected = "firstvisit"
-      ) #radioGroupButtons
+      )
     }
   })
   
+  #this only exists to initialise input$feeding_data right away to stop errors occurring
   output$feeding_data_initialise <- renderUI({
-    if(length(input$feeding_data) != 1) {
+    if(length(input$feeding_data) != 1) { #this if statement means this doesn't exist after it's done it's job
       hidden(
         textInput(inputId = "feeding_data", 
                   label = "", 
@@ -285,13 +297,8 @@ function(input, output, session) {
         inputId = "feeding_type",
         label = "Select which types of breastfeeding statistics to show:",
         choices = feeding_choices(),
-        selected = feeding_choices(),
-        # status = "primary",
-        # #justified = TRUE,
-        # checkIcon = list(
-        #   yes = icon("square-check") |> rem_aria_label(),
-        #   no = icon("square") |> rem_aria_label())
-      )
+        selected = feeding_choices()
+        )
     }
   })
   
@@ -326,9 +333,10 @@ function(input, output, session) {
   #creates the plot to be displayed
   output$feeding_perc_plotly <- renderPlotly({
     
-    data <- feeding_perc_data()
-    ymax <- min(c(max(c(data$measure, 0)), 100))
+    data <- feeding_perc_data() #read in the dataset
+    ymax <- min(c(max(c(data$measure, 0)), 100)) #determine the y-axis max for the plot
     
+    #create the basic line plot
     plot <- plot_ly(data = data,
                     x = ~ date,
                     text = ~ first(geography)) |>
@@ -342,8 +350,9 @@ function(input, output, session) {
                 )
       
     
-    if(length(input$feeding_type) == 1) {
+    if(length(input$feeding_type) == 1) { #adds elements that only appear when one option is selected
       plot <- plot |>
+        #adds a pre-pandemic median line
         add_trace(y = ~ median,
                   type = "scatter",
                   mode = "lines",
@@ -352,14 +361,16 @@ function(input, output, session) {
                   line = list(color = line_colours[input$feeding_type], #match the other present line colour
                               dash = "4")
                   ) |>
+        #adds shading around trend points
         add_trace(y = ~ measure / trend,
                   type = "scatter",
                   mode = "lines",
                   name = "Trend of 5 points or more",
                   hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}",
-                  line = list(color = colour_switch(line_colours[input$feeding_type]), #adds transparency to colour
+                  line = list(color = colour_switch(line_colours[input$feeding_type], 0.2), #adds alpha to colour
                               width = 10)
         ) |>
+        #adds a solid median line for the points from which the median is defined
         add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                   type = "scatter",
                   mode = "lines",
@@ -369,7 +380,7 @@ function(input, output, session) {
                   )
     }
     
-    if(length(input$feeding_type) >= 1) {
+    if(length(input$feeding_type) >= 1) { #if statement just stops a plot from being displayed when no options are selected
       plot |>
         config(displayModeBar = FALSE) |>
         layout(yaxis = list(range = c(0, ymax), 
@@ -453,7 +464,7 @@ function(input, output, session) {
   #wrangles the data to be fed into the plots
   feeding_comparison_data <- eventReactive(input$update_feeding_comparison, {
     feeding_percentage_data[[input$feeding_data]] |>
-      filter(geography %in% input$geog_comparison_list_feeding &
+      filter(geography %in% selected$geog_comparison_list &
                category %in% input$feeding_type)
   })
   
@@ -511,21 +522,21 @@ function(input, output, session) {
   
   
   # Child Development ----
-  
+  #allows user to select which child development dataset to see
   output$development_data_select <- renderUI({
-    if("development_charts" %in% input$sidebarMenu) {
+    if("development_charts" %in% input$sidebarMenu) { #only appear when on the infant feeding charts page
       radioButtons(
         inputId = "development_data",
         label = "Select the data you want to explore:",
         choiceNames = list("13-15 month review", "27-30 month review", "4-5 year review"),
         choiceValues = development_data_options,
         selected = "13-15m"
-      ) #radioGroupButtons
+      )
     }
   })
-  
+  #this only exists to initialise input$development_data right away to stop errors occurring
   output$development_data_initialise <- renderUI({
-    if(length(input$development_data) != 1) {
+    if(length(input$development_data) != 1) { #this if statement means this doesn't exist after it's done it's job
       hidden(
         textInput(inputId = "development_data", 
                   label = "", 
@@ -578,7 +589,7 @@ function(input, output, session) {
                 mode = "lines",
                 name = "Trend of 5 points or more",
                 hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}<extra></extra>",
-                line = list(color = colour_switch("#9B4393"), #adds transparency to colour
+                line = list(color = colour_switch("#9B4393", 0.2), #adds aplha to phs-magenta colour
                             width = 10)
                 ) |>
       add_trace(y = ~ median / (date <= ymd("2020-02-01")),
@@ -757,7 +768,7 @@ function(input, output, session) {
                   mode = "lines",
                   name = "Trend of 5 points or more",
                   hovertemplate = "<b>All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}",
-                  line = list(color = colour_switch(line_colours[input$domains_selected]), #adds transparency to colour
+                  line = list(color = colour_switch(line_colours[input$domains_selected], 0.2), #adds alpha to colour
                               width = 10)
         ) |>
         add_trace(y = ~ median / (date <= ymd("2020-02-01")),
@@ -837,7 +848,7 @@ function(input, output, session) {
                   mode = "lines",
                   name = "Trend of 5 points or more",
                   hovertemplate = "<b>All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}",
-                  line = list(color = colour_switch(line_colours[input$simd_levels]), #adds transparency to colour
+                  line = list(color = colour_switch(line_colours[input$simd_levels], 0.2), #adds alpha to colour
                               width = 10)
         ) |>
       add_trace(y = ~ median / (date <= ymd("2020-02-01")),
@@ -872,6 +883,7 @@ function(input, output, session) {
   
   
   #Downloads ----
+  #will get this section working soon!
   # output$feeding_download <- downloadHandler({
   #   
   # })
@@ -889,13 +901,17 @@ function(input, output, session) {
   # })
   
   
+  
+  
+  
   #.----
   # Testing! ----
   # little sidebar dev app to display variables for testing
   output$testing <- renderPrint({
     str_view(c(paste0("A ", input$feeding_data),
-               paste0("B ", input$development_data),
-               paste0("C ", input$sidebarMenu)
+               paste0("B ", input$feeding_type),
+               paste0("C ", selected$geog_comparison_list)
+               #paste0("D ", feeding_comparison_data() |> head(n=1))
     ))
   })
 

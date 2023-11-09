@@ -48,7 +48,7 @@ sidebar <- dashboardSidebar(
                menuSubItem("About this indicator",
                            tabName = "feeding_about",
                            icon = shiny::icon("angle-double-right") |> rem_aria_label())
-      ) |> rem_menu_aria_label(),
+      ) |> rem_menu_aria_label(), #function fixes ARIA label of symbol on accordion menu
       
       menuItem("Child Development",
                icon = icon("children", verify_fa = FALSE) |> rem_aria_label(),
@@ -58,23 +58,25 @@ sidebar <- dashboardSidebar(
                menuSubItem("About this indicator",
                            tabName = "development_about",
                            icon = shiny::icon("angle-double-right") |> rem_aria_label())
-      ) |> rem_menu_aria_label()
+      ) |> rem_menu_aria_label() #function fixes ARIA label of symbol on accordion menu
       
     )    #sidebarMenu
   ),    #accessible_menu
   
   useShinyjs(),    #must be included to make javascript stuff happen
   
+  #controls which appear in sidebar only on specific tabs
   uiOutput("feeding_data_select"),
   uiOutput("feeding_type_select"),
   uiOutput("development_data_select"),
   
   
-  #initialises input$sidebarMenu 
+  #three invisible widgets which initialise variables which would otherwise start empty
   hidden(textInput(inputId = "sidebarMenu", label = "", value = "home")),
   uiOutput("feeding_data_initialise"),
   uiOutput("development_data_initialise"),
-  #dev panel to track variables
+  
+  #dev panel to test and to track variables
   verbatimTextOutput("testing")
 )
 
@@ -86,8 +88,8 @@ home <- tabItem(
   tabName = "home",
   fluidRow(
     tabBox(title = "Home",
-           # The id lets us use input$tabset00 on the server to find the current tab
-           id = "tabset00",
+           # The id lets us use input$home_tab on the server to find the current tab
+           id = "home_tab",
            width = 12,
            height = "25px",
            
@@ -205,21 +207,23 @@ feeding_charts <- tabItem(
   tabName = "feeding_charts",
   fluidRow(
     tabBox(title = "Infant Feeding",
+           # The id lets us use input$feeding_charts_tab on the server to find the current tab
            id = "feeding_charts_tab",
            width = 12,
            height = "25px",
            
-           ###Individual region charts ----
+           ###Individual region charts tab----
            tabPanel(title = "Individual region charts",
+                    
                     fluidRow(
                       box(width = 5, solidHeader = TRUE,
-                          uiOutput("geog_level_select_feeding")
+                          uiOutput("geog_level_select_feeding") #widget to select geography level
                       ),
                       box(width = 4, solidHeader = TRUE,
-                          uiOutput("geog_select_feeding")
+                          uiOutput("geog_select_feeding") #widget to select HB / CA
                       ),
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "feeding_download", 
+                          downloadButton(outputId = "feeding_download", #currently not operational
                                          label = "Download infant feeding data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                           ) 
@@ -237,6 +241,7 @@ feeding_charts <- tabItem(
                           behaviour in data and indicate patterns that merit further 
                           investigation. Read more about the rules used in the charts
                           in the \"Identifying Data\" section of the Home page"),
+                          
                           p("To provide a basis for identifying patterns in the data,
                           the charts above use a blue line to show the average (median)
                           percentage of children who are recorded as breastfed over
@@ -249,46 +254,49 @@ feeding_charts <- tabItem(
                           yellow where there are 6 or more consecutive points above
                           or below the average, and is highlighted in green where 
                           there are 5 or more consecutively increasing or decreasing 
-                          points.")),
+                          points.")
+                          ),
                       
                       
                       box(width = 12,
                           h4(textOutput("feeding_numbers_title"), style = "text-align: center;"),
                           loading(plotlyOutput("feeding_numbers_plotly", height = "300px"))
-                      )
-                    )
-           ), #tabPanel ("Runcharts")
+                          )
+                    ) #fluidRow
+           ), #tabPanel
            
            
            
            ###Regional comparisons ----
            tabPanel(title = "Regional comparisons",
+                    
                     fluidRow(
                       box(width = 4, solidHeader = TRUE,
-                          uiOutput("geog_comparison_level_select_feeding")
+                          uiOutput("geog_comparison_level_select_feeding") #widget to select geography level
                       ),
                       box(width = 6, solidHeader = TRUE,
-                          uiOutput("geog_comparison_select_feeding")
+                          uiOutput("geog_comparison_select_feeding") #widget to select HB ? CA
                       ),
                       box(width = 2, solidHeader = TRUE,
                           br(),
-                          actionButton(inputId = "update_feeding_comparison",
-                                       label = "Update View")
+                          actionBttn(inputId = "update_feeding_comparison",
+                                     label = "Update View",
+                                     style = "unite", 
+                                     color = "royal"
+                                     ) #comparison graph only updates when this button is pressed
                           )
-                    ),
+                    ), #fluidRow
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("feeding_comparison_title"), style = "text-align: center;"),
                           loading(plotlyOutput("feeding_comparison_plotly", height = "600px"))
                           )
-                    )
-           )
-           
-           
-    ) # tabBox ("Infant Feeding")
-  )
-)
+                    ) #fluidRow
+           ) #tabPanel
+    ) # tabBox
+  ) #fluidRow
+) #tabItem
 
 
 ###About this indicator ----
@@ -296,7 +304,7 @@ feeding_about <- tabItem(
   tabName = "feeding_about",
   fluidRow(
     tabBox(title = "About this indicator",
-           id = "feeding_about_tab",
+           id = "feeding_about_tab", #is tabBox structure unnecessary if there's only one tab here?
            width = 12,
            height = "25px",
            tabPanel(title = "About this indicator",
@@ -317,11 +325,12 @@ feeding_about <- tabItem(
                             in the \"Data source and definitions\" column. The \"Charts\" tab
                             gives options to toggle on and off each of these three 
                             metrics to allow users to compare them against each other.")
-                      ),
+                      ), #box
                       
                       box(width = 1,
                           solidHeader = TRUE
                       ),
+                      
                       box(title = "Data source and definitions",
                           width = 5,
                           p("Data Source: CHSP Pre-School"),
@@ -345,9 +354,9 @@ feeding_about <- tabItem(
                            24 hour period. Analysis is based on NHS Board of Residence."),
                           p("The average is calculated as the median value of the
                            period specified.")
-                      )
-                    )
-           ) #tabPanel ("About this indicator")
+                      ) #box
+                    ) #fluidRow
+           ) #tabPanel
     ) #tabBox
   ) #fluidRow
 ) #tabItem
@@ -360,21 +369,23 @@ development_charts <- tabItem(
   tabName = "development_charts",
   fluidRow(
     tabBox(title = "Child Development",
+           # The id lets us use input$development_charts_tab on the server to find the current tab
            id = "development_charts_tab",
            width = 12,
            height = "25px",
 
            ###Individual region charts ----
            tabPanel(title = "Individual region charts",
+                    
                     fluidRow(
                       box(width = 5, solidHeader = TRUE,
-                          uiOutput("geog_level_select_development")
+                          uiOutput("geog_level_select_development") #widget to select geography level
                       ),
                       box(width = 4, solidHeader = TRUE,
-                          uiOutput("geog_select_development")
+                          uiOutput("geog_select_development") #widget to select HB / CA
                       ),
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "development_download", 
+                          downloadButton(outputId = "development_download",  #currently not operational
                                          label = "Download child development data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                           )
@@ -410,9 +421,9 @@ development_charts <- tabItem(
                       box(width = 12,
                           h4(textOutput("development_numbers_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_numbers_plotly", height = "300px"))
-                      )
+                          )
                     ) #fluidRow
-           ), #tabPanel ("Runcharts")
+           ), #tabPanel
            
            
            
@@ -420,33 +431,38 @@ development_charts <- tabItem(
            tabPanel(title = "Regional comparisons",
                     fluidRow(
                       box(width = 4, solidHeader = TRUE,
-                          uiOutput("geog_comparison_level_select_development")
+                          uiOutput("geog_comparison_level_select_development") #widget to select geography level
                       ),
                       box(width = 6, solidHeader = TRUE,
-                          uiOutput("geog_comparison_select_development")
+                          uiOutput("geog_comparison_select_development") #widget to select HB / CA
                       ),
                       box(width = 2, solidHeader = TRUE,
                           br(),
-                          actionButton(inputId = "update_development_comparison",
-                                       label = "Update View")
+                          actionBttn(inputId = "update_development_comparison",
+                                       label = "Update View",
+                                       style = "unite", 
+                                       color = "royal"
+                                       ) #comparison graph only updates when this button is pressed
                       )
-                    ),
+                    ), #fluidRow
+                    
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_comparison_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_comparison_plotly", height = "600px"))
                           )
-                    )
-           ),
+                    ) #fluidRow
+           ), #tabPanel
            
            ###Developmental domains ----
            tabPanel(title = "Developmental domains",
                     
                     fluidRow(
                       box(width = 9, solidHeader = TRUE,
+                          #widget to select which developmental domains to display on plot
                           checkboxGroupButtons(
                             inputId = "domains_selected",
-                            label = "Select which domains to include in the plot:",
+                            label = "Select which developmental domains to include in the plot:",
                             choices = domains,
                             selected = domains,
                             status = "primary",
@@ -456,7 +472,7 @@ development_charts <- tabItem(
                           )
                       ),
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "domains_download", 
+                          downloadButton(outputId = "domains_download", #currently not operational
                                          label = "Download developmental domains data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                           ) 
@@ -469,14 +485,15 @@ development_charts <- tabItem(
                           h4(textOutput("development_concerns_by_domain_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_concerns_by_domain_plotly", height = "300px"))
                       )
-                    )
-           ),
+                    ) #fluidRow
+           ), #tabPanel
            
            
            ###SIMD quintiles ----
            tabPanel(title = "SIMD quintiles",
                     fluidRow(
                       box(width = 9, solidHeader = TRUE,
+                          #widget to select which SIMD quintiles to display
                           checkboxGroupButtons(
                             inputId = "simd_levels",
                             label = "Select which SIMD quintiles to show. This 
@@ -491,7 +508,7 @@ development_charts <- tabItem(
                             )
                           ),
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "simd_download", 
+                          downloadButton(outputId = "simd_download", #currently not operational
                                          label = "Download SIMD data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                                          ) 
@@ -502,20 +519,19 @@ development_charts <- tabItem(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_concerns_by_simd_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_concerns_by_simd_plotly", height = "300px"))
-                      )
-                    )
-           )
-           
-    ) # tabBox ("Child Development")
-  )
-)
+                      ) #box
+                    ) #fluidRow
+           ) #tabPanel
+    ) # tabBox 
+  ) #fluidRow
+) #tabItem
 
 ###About this indicator ----
 development_about <- tabItem(
   tabName = "development_about",
   fluidRow(
     tabBox(title = "About this indicator",
-           id = "development_about_tab",
+           id = "development_about_tab", #does this need tabbox structure if it's only one tab?
            width = 12,
            height = "25px",
            tabPanel(title = "About this indicator",
@@ -551,7 +567,7 @@ development_about <- tabItem(
                             development. At the end of the review Health Visitors 
                             record whether they have any concerns about each area 
                             of the child’s development.")
-                      ),
+                      ), #box
                       
                       box(width = 1,
                           solidHeader = TRUE
@@ -592,9 +608,9 @@ development_about <- tabItem(
                             based on reviews provided in January 2019 to February
                             2020. The average is calculated as the median value of
                             the period specified.")
-                      )
-                    )
-           ) #tabPanel ("About this Measure")
+                      ) #box
+                    ) #fluidRow
+           ) #tabPanel
     ) #tabBox
   ) #fluidRow
 ) #tabItem
@@ -651,5 +667,4 @@ tagList( #needed for shinyjs
     sidebar,
     body
   ) # dashboardPage
-)  # tagList
-
+) #|> secure_app() #comment out to remove authentication
