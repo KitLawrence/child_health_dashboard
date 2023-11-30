@@ -221,6 +221,7 @@ function(input, output, session) {
   observeEvent(input$geog_comparison_level_development,
                selected$geog_comparison_list <- comparison_choices())
   
+  
   #based on how many health boards / council areas have been selected,
   #this reactive element tells plotly how many rows to put into the comparison grid
   nrows <- reactive({
@@ -323,7 +324,8 @@ function(input, output, session) {
     if(length(input$feeding_type) == 1) {
       data <- data |>
           mutate(median = median(measure[date <= ymd("2020-02-01")], na.rm = TRUE),
-               trend = trend(measure))
+               trend = trend(measure),
+               shift = shift(measure, median))
     }
     
     return(data)
@@ -370,6 +372,15 @@ function(input, output, session) {
                   line = list(color = colour_switch(line_colours[input$feeding_type], 0.2), #adds alpha to colour
                               width = 10)
         ) |>
+        #adds star symbol for shift points
+        add_trace(y = ~ measure / shift,
+                  type = "scatter",
+                  mode = "markers",
+                  name = "Shift of 6 points or more",
+                  hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}",
+                  marker = list(color = line_colours[input$feeding_type],
+                                symbol = "star",
+                                size = 10)) |>
         #adds a solid median line for the points from which the median is defined
         add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                   type = "scatter",
@@ -498,19 +509,32 @@ function(input, output, session) {
                xanchor = "center",
                yanchor = "bottom",
                showarrow = FALSE
-             ),
-             yaxis = list(range = c(0, ymax),
-                          title = list(text = "% of reviews")),
-             xaxis = list(title = list(text = "Month of review")),
-             legend = list(itemclick = FALSE,
-                           itemdoubleclick = FALSE,
-                           title = list(text = "Feeding Type"))
-             )) -> plot_list
+               ),
+               yaxis = list(range = c(0, ymax)),
+               xaxis = list(title = list(text = "Month of review")),
+               legend = list(itemclick = FALSE,
+                             itemdoubleclick = FALSE,
+                             title = list(text = "Feeding Type"))
+               )) -> plot_list
       
       subplot(plot_list$plots, nrows = isolate(nrows()), 
               shareX = TRUE, shareY = TRUE,
               margin = c(0.02, 0.02, 0.03, 0.03)
               ) |>
+        layout(
+          annotations = list(
+            text = "% of reviews",
+            font = list(size = 14),
+            x = 0,
+            y = 0.5,
+            #standoff = 30, # distance between axis title and tick labels
+            xshift = -60,
+            textangle = 270,
+            showarrow = FALSE,
+            xref = "paper",
+            yref = "paper"
+          )
+        ) |>
         config(displayModeBar = FALSE)
       
     }
@@ -557,7 +581,8 @@ function(input, output, session) {
   development_percentage_concern_data <- reactive({
     development_percentage_data[[input$development_data]] |>
       filter(geography %in% geog_final()) |>
-      mutate(trend = trend(measure))
+      mutate(trend = trend(measure),
+             shift = shift(measure, median))
   })
   
   #creates the plot to be displayed
@@ -592,6 +617,14 @@ function(input, output, session) {
                 line = list(color = colour_switch("#9B4393", 0.2), #adds aplha to phs-magenta colour
                             width = 10)
                 ) |>
+      add_trace(y = ~ measure / shift,
+                type = "scatter",
+                mode = "markers",
+                name = "Shift of 6 points or more",
+                hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}<extra></extra>",
+                marker = list(color = "#9B4393",
+                              symbol = "star",
+                              size = 10)) |>
       add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                 type = "scatter",
                 mode = "lines",
@@ -695,8 +728,7 @@ function(input, output, session) {
                       yanchor = "bottom",
                       showarrow = FALSE
                     ),
-                    yaxis = list(range = c(0, ymax),
-                                 title = list(text = "% of reviews")),
+                    yaxis = list(range = c(0, ymax)),
                     xaxis = list(title = list(text = "Quarter of review"))
              )) -> plot_list
       
@@ -704,6 +736,20 @@ function(input, output, session) {
               shareX = TRUE, shareY = TRUE, 
               margin = c(0.02, 0.02, 0.03, 0.03)
               ) |>
+        layout(
+          annotations = list(
+            text = "% of reviews",
+            font = list(size = 14),
+            x = 0,
+            y = 0.5,
+            #standoff = 30, # distance between axis title and tick labels
+            xshift = -60,
+            textangle = 270,
+            showarrow = FALSE,
+            xref = "paper",
+            yref = "paper"
+          )
+        ) |>
         config(displayModeBar = FALSE)
     }
   })
@@ -730,7 +776,8 @@ function(input, output, session) {
     if(length(input$domains_selected) == 1) {
       data <- data |>
         mutate(median = median(measure[date <= ymd("2020-02-01")], na.rm = TRUE),
-               trend = trend(measure))
+               trend = trend(measure),
+               shift = shift(measure, median))
     }
     
     return(data)
@@ -771,6 +818,15 @@ function(input, output, session) {
                   line = list(color = colour_switch(line_colours[input$domains_selected], 0.2), #adds alpha to colour
                               width = 10)
         ) |>
+        #adds star symbol for shift points
+        add_trace(y = ~ measure / shift,
+                  type = "scatter",
+                  mode = "markers",
+                  name = "Shift of 6 points or more",
+                  hovertemplate = "All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}",
+                  marker = list(color = line_colours[input$domains_selected],
+                                symbol = "star",
+                                size = 10)) |>
         add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                   type = "scatter",
                   mode = "lines",
@@ -811,7 +867,8 @@ function(input, output, session) {
     if(length(input$simd_levels) == 1) {
       data <- data |>
         mutate(median = median(measure[date <= ymd("2020-02-01")], na.rm = TRUE),
-               trend = trend(measure))
+               trend = trend(measure),
+               shift = shift(measure, median))
     }
     
     return(data)
@@ -851,6 +908,15 @@ function(input, output, session) {
                   line = list(color = colour_switch(line_colours[input$simd_levels], 0.2), #adds alpha to colour
                               width = 10)
         ) |>
+        #adds star symbol for shift points
+        add_trace(y = ~ measure / shift,
+                  type = "scatter",
+                  mode = "markers",
+                  name = "Shift of 6 points or more",
+                  hovertemplate = "All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}",
+                  marker = list(color = line_colours[input$simd_levels],
+                                symbol = "star",
+                                size = 10)) |>
       add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                 type = "scatter",
                 mode = "lines",
@@ -884,21 +950,51 @@ function(input, output, session) {
   
   #Downloads ----
   #will get this section working soon!
-  # output$feeding_download <- downloadHandler({
-  #   
-  # })
-  # 
-  # output$development_download <- downloadHandler({
-  #   
-  # })
-  # 
-  # output$domains_download <- downloadHandler({
-  #   
-  # })
-  # 
-  # output$simd_download <- downloadHandler({
-  #   
-  # })
+  output$feeding_download <- downloadHandler(
+    
+    filename = paste0(extract_date, "_infant_feeding.xlsx"),
+    
+    content = \(file) {
+      openxlsx::saveWorkbook(
+        openxlsx::loadWorkbook(paste0("downloads/", extract_date, "_infant_feeding.xlsx")),
+        file
+      )
+    }
+  )
+
+  
+  output$development_download <- downloadHandler(
+    filename = paste0(extract_date, "_child_development.xlsx"),
+    
+    content = \(file) {
+      openxlsx::saveWorkbook(
+        openxlsx::loadWorkbook(paste0("downloads/", extract_date, "_child_development.xlsx")),
+        file
+      )
+    }
+  )
+
+  output$domains_download <- downloadHandler(
+    filename = paste0(extract_date, "_developmental_domains.xlsx"),
+    
+    content = \(file) {
+      openxlsx::saveWorkbook(
+        openxlsx::loadWorkbook(paste0("downloads/", extract_date, "_developmental_domains.xlsx")),
+        file
+      )
+    }
+  )
+
+  output$simd_download <- downloadHandler(
+    filename = paste0(extract_date, "_SIMD_quintiles.xlsx"),
+    
+    content = \(file) {
+      openxlsx::saveWorkbook(
+        openxlsx::loadWorkbook(paste0("downloads/", extract_date, "_SIMD_quintiles.xlsx")),
+        file
+      )
+    }
+  )
   
   
   
@@ -907,13 +1003,14 @@ function(input, output, session) {
   #.----
   # Testing! ----
   # little sidebar dev app to display variables for testing
-  output$testing <- renderPrint({
-    str_view(c(paste0("A ", input$feeding_data),
-               paste0("B ", input$feeding_type),
-               paste0("C ", selected$geog_comparison_list)
-               #paste0("D ", feeding_comparison_data() |> head(n=1))
-    ))
-  })
-
+  # output$testing <- renderPrint({
+  #   str_view(c(paste0("A ", input$feeding_data),
+  #              paste0("B ", input$feeding_type),
+  #              paste0("C ", selected$geog_comparison_list)
+  #              paste0("D ", feeding_comparison_data() |> head(n=1))
+  #   ))
+  # })
+  
+  
   
 }

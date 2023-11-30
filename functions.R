@@ -81,6 +81,48 @@ trend <- function(x) {
 }
 
 
+shift <- function(x, threshold) {
+  
+  above <- (x > threshold)
+  
+  above2 <- lag(above, default = FALSE)
+  above3 <- lag(above2, default = FALSE)
+  above4 <- lag(above3, default = FALSE)
+  above5 <- lag(above4, default = FALSE)
+  above6 <- lag(above5, default = FALSE)
+  
+  shift_up <- ((above + above2 + above3 + above4 + above5 + above6) == 6)
+  
+  shift_up2 <- lead(shift_up, default = FALSE)
+  shift_up3 <- lead(shift_up2, default = FALSE)
+  shift_up4 <- lead(shift_up3, default = FALSE)
+  shift_up5 <- lead(shift_up4, default = FALSE)
+  shift_up6 <- lead(shift_up5, default = FALSE)
+  
+  shift_up_final <- as.logical(shift_up + shift_up2 + shift_up3 + shift_up4 + shift_up5 + shift_up6)
+  
+  
+  below <- (x < threshold)
+
+  below2 <- lag(below, default = FALSE)
+  below3 <- lag(below2, default = FALSE)
+  below4 <- lag(below3, default = FALSE)
+  below5 <- lag(below4, default = FALSE)
+  below6 <- lag(below5, default = FALSE)
+
+  shift_down <- ((below + below2 + below3 + below4 + below5 + below6) == 6)
+
+  shift_down2 <- lead(shift_down, default = FALSE)
+  shift_down3 <- lead(shift_down2, default = FALSE)
+  shift_down4 <- lead(shift_down3, default = FALSE)
+  shift_down5 <- lead(shift_down4, default = FALSE)
+  shift_down6 <- lead(shift_down5, default = FALSE)
+
+  shift_down_final <- as.logical(shift_down + shift_down2 + shift_down3 + shift_down4 + shift_down5 + shift_down6)
+  
+  return(shift_up_final | shift_down_final)
+  
+}
 
 
 #this function just changes a colour from a hex code and alpha value to an rgba format

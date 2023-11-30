@@ -94,7 +94,7 @@ line_colours <- c("#3F3685", #phs-purple
   ))
 
 #list of symbols to use in domains graph, as the default only assigns 6 symbols
-domain_symbols <- c("circle", "triangle-down", "square", "diamond", "star", "cross", "x", "hourglass") |>
+domain_symbols <- c("circle", "triangle-down", "square", "diamond", "square-open", "cross", "x", "hourglass") |>
   setNames(domains)
 
 
