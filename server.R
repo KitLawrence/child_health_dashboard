@@ -15,31 +15,23 @@ function(input, output, session) {
   #Geography Control ----
   #takes geography level choice from infant feeding tab
   output$geog_level_select_feeding <- renderUI({
-    radioGroupButtons(
+    radioButtons(
       inputId = "geog_level_chosen_feeding",
       label = "Select geography level to display:",
       choices = c("All Scotland", "Health Board", "Council Area"),
       selected = selected$geog_level, #syncs this with the equivalent choice on the child development tab
-      #justified = TRUE,
-      status = "primary",
-      checkIcon = list(
-        yes = icon("circle-check") |> rem_aria_label(),
-        no = icon("circle") |> rem_aria_label())
+      inline = TRUE
     )
   })
   
   #takes geography level choice from child development tab
   output$geog_level_select_development <- renderUI({
-    radioGroupButtons(
+    radioButtons(
       inputId = "geog_level_chosen_development",
       label = "Select geography level to display:",
       choices = c("All Scotland", "Health Board", "Council Area"),
       selected = selected$geog_level, #syncs this with the equivalent choice on the infant feeding tab
-      #justified = TRUE,
-      status = "primary",
-      checkIcon = list(
-        yes = icon("circle-check") |> rem_aria_label(),
-        no = icon("circle") |> rem_aria_label())
+      inline = TRUE
     )
   })
   
@@ -83,31 +75,23 @@ function(input, output, session) {
   
   #takes geography level choice from infant feeding comparisons tab
   output$geog_comparison_level_select_feeding <- renderUI({
-    radioGroupButtons(
+    radioButtons(
       inputId = "geog_comparison_level_feeding",
       label = "Select geography level to compare:",
       choices = list("Health Board", "Council Area"),
       selected = selected$geog_comparison_level, #syncs this with the equivalent choice on the child development tab
-      status = "primary",
-      justified = TRUE,
-      checkIcon = list(
-        yes = icon("circle-check") |> rem_aria_label(),
-        no = icon("circle") |> rem_aria_label())
+      inline = TRUE
     )
   })
   
   #takes geography level choice from child development comparisons tab
   output$geog_comparison_level_select_development <- renderUI({
-    radioGroupButtons(
+    radioButtons(
       inputId = "geog_comparison_level_development",
       label = "Select geography level to compare:",
       choices = list("Health Board", "Council Area"),
       selected = selected$geog_comparison_level, #syncs this with the equivalent choice on the infant feeding tab
-      status = "primary",
-      justified = TRUE,
-      checkIcon = list(
-        yes = icon("circle-check") |> rem_aria_label(),
-        no = icon("circle") |> rem_aria_label())
+      inline = TRUE
     )
   })
   
@@ -146,7 +130,9 @@ function(input, output, session) {
   #initialise the "selected" variables
   selected <- reactiveValues(geog_level = "All Scotland",
                              geog_comparison_level = "Health Board",
-                             geog_comparison_list = HBnames)
+                             geog_comparison_list = HBnames,
+                             domains = domains,
+                             simd = c(1,5))
   
   #update geography level each time it is changed on either page
   observeEvent(input$geog_level_chosen_feeding, 
@@ -221,6 +207,29 @@ function(input, output, session) {
   observeEvent(input$geog_comparison_level_development,
                selected$geog_comparison_list <- comparison_choices())
   
+  
+  
+  
+  #updates selected domains when each option is clicked
+  observeEvent(input$domains_selected,
+               selected$domains <- input$domains_selected)
+  
+  observeEvent(input$select_all_domains,
+               selected$domains <- domains)
+  
+  observeEvent(input$deselect_all_domains,
+               selected$domains <- character(0))
+  
+  
+  #updates selected domains when each option is clicked
+  observeEvent(input$simd_levels,
+               selected$simd <- input$simd_levels)
+  
+  observeEvent(input$select_all_simd,
+               selected$simd <- 1:5)
+  
+  observeEvent(input$deselect_all_simd,
+               selected$simd <- numeric(0))
   
   #based on how many health boards / council areas have been selected,
   #this reactive element tells plotly how many rows to put into the comparison grid
@@ -511,7 +520,7 @@ function(input, output, session) {
                showarrow = FALSE
                ),
                yaxis = list(range = c(0, ymax)),
-               xaxis = list(title = list(text = "Month of review")),
+               #xaxis = list(title = list(text = "Month of review")),
                legend = list(itemclick = FALSE,
                              itemdoubleclick = FALSE,
                              title = list(text = "Feeding Type"))
@@ -728,8 +737,9 @@ function(input, output, session) {
                       yanchor = "bottom",
                       showarrow = FALSE
                     ),
-                    yaxis = list(range = c(0, ymax)),
-                    xaxis = list(title = list(text = "Quarter of review"))
+                    #xaxis = list(title = list(text = "Quarter of review")),
+                    yaxis = list(range = c(0, ymax))
+                    
              )) -> plot_list
       
       subplot(plot_list$plots, nrows = isolate(nrows()), 
@@ -761,6 +771,18 @@ function(input, output, session) {
   
   
   ##Concerns by Domain ----
+  #selector widget for picking which developmental domains are displayed
+  output$domains_selector <- renderUI({
+    checkboxGroupInput(
+      inputId = "domains_selected",
+      label = "Select which developmental domains to include in the plot:",
+      choices = domains,
+      selected = selected$domains,
+      inline = TRUE
+    )
+  })
+  
+  
   #title of plot changes based on choices
   output$development_concerns_by_domain_title <- renderText({
     paste0("Percentage of ",
@@ -852,6 +874,19 @@ function(input, output, session) {
   
   
   ##Concerns by SIMD Quintile ----
+  
+  output$simd_selector <- renderUI({
+    checkboxGroupInput(
+      inputId = "simd_levels",
+      label = "Select which SIMD quintiles to show. This
+              scale ranges from 1 being the most deprived to 5
+              being the least deprived.",
+      choices = c(1:5),
+      selected = selected$simd,
+      inline = TRUE
+    )
+  })
+  
   #title of plot changes based on choices
   output$development_concerns_by_simd_title <- renderText({
     paste0("Percentage of children with 1 or more developmental concerns recorded at the ",
@@ -1004,10 +1039,8 @@ function(input, output, session) {
   # Testing! ----
   # little sidebar dev app to display variables for testing
   # output$testing <- renderPrint({
-  #   str_view(c(paste0("A ", input$feeding_data),
-  #              paste0("B ", input$feeding_type),
-  #              paste0("C ", selected$geog_comparison_list)
-  #              paste0("D ", feeding_comparison_data() |> head(n=1))
+  #   str_view(c(paste0("A ", input$domains_selected),
+  #              paste0("B ", selected$domains)
   #   ))
   # })
   

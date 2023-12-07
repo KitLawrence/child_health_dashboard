@@ -42,6 +42,12 @@ rem_menu_aria_label <- function(menu) {
   return(menu)
 }
 
+rem_button_aria_label <- function(box) {
+  box[["children"]][[1]][["children"]][[1]][["children"]][[2]][["children"]][[1]][["children"]][[1]][["attribs"]][["aria-label"]] = NULL
+  box[["children"]][[1]][["children"]][[1]][["children"]][[2]][["children"]][[1]][["attribs"]][["title"]] = "open and close button" 
+  return(box)
+}
+
 
 
 #function takes a numeric vector x (usually the x-axis in a plot) and outputs a logical 

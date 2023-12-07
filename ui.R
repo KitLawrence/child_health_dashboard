@@ -119,8 +119,16 @@ home <- tabItem(
                             on the left-hand side. Each measure has a drop-down list; 
                             choose the “Charts” to go to the pages displaying data,
                             and the “About this indicator” tab to read background 
-                            information and context for that indicator.")
-                          ),
+                            information and context for that indicator."),
+                          
+                          p("The left-hand menu can also be hidden and revealed by 
+                            clicking on this toggle button",
+                            tags$imag(src = "sidebar_toggle.png",
+                                      alt = "Sidebar toggle image"),
+                                      #size = "60%"),
+                            "at the top of the screen. This can be useful if you 
+                            are viewing charts on a small computer screen.")
+                          ) |> rem_button_aria_label(),
                       
                       
                       box(width = 12, #solidHeader = TRUE, 
@@ -128,7 +136,7 @@ home <- tabItem(
                           title = p(strong("Infant feeding details")),
                           
                           p("Within the infant feeding data, select from the options 
-                            on left-hand side to show information about feeding at 
+                            in the sidebar to show information about feeding at 
                             the Health Visitor first visit (around 10 days of age),
                             or the review at 6-8 weeks of age. You can also select 
                             whether you wish to see data on the percentage of babies 
@@ -136,7 +144,7 @@ home <- tabItem(
                             breastfed’ (including mixed feeding), and currently ‘Exclusively 
                             breastfed’. More information about definitions is available 
                             in the “About this indicator” section.")
-                      ),
+                      ) |> rem_button_aria_label(),
                              
                       
                       box(width = 12, #solidHeader = TRUE, 
@@ -144,7 +152,7 @@ home <- tabItem(
                           title = p(strong("Child development details")),
                           
                           p("Within the child development data, select from the options
-                            on the left-hand side to show information about outcomes 
+                            in the sidebar to show information about outcomes 
                             of the 13-15 month review, 27-30 month review, or 4-5
                             year review."),
                           
@@ -154,7 +162,7 @@ home <- tabItem(
                             or SIMD quintiles you wish to see in these charts by 
                             checking the relevant boxes. More information about definitions
                             is available in the “About this indicator” section.")
-                      ),
+                      ) |> rem_button_aria_label(),
                       
                       
                       box(width = 12, #solidHeader = TRUE, 
@@ -166,7 +174,7 @@ home <- tabItem(
                             and trends is only shown when a single measure is selected 
                             in a given chart. For more information see the “How we 
                             identify patterns in the data” tab.")
-                      ),
+                      ) |> rem_button_aria_label(),
                       
                       
                       box(width = 12, #solidHeader = TRUE, 
@@ -189,7 +197,7 @@ home <- tabItem(
                             options you have selected. The information can then be
                             manipulated in Excel to show the aspects of interest 
                             to you, for example using ‘filter’ or ‘pivot table’ options.")
-                      ),
+                      ) |> rem_button_aria_label(),
                       
                       
                       box(width = 12, #solidHeader = TRUE, 
@@ -204,7 +212,7 @@ home <- tabItem(
                               tags$u("phs.childhealthstats@phs.scot"),
                               class = "externallink", target = "_blank"),
                             " for more information or to provide feedback.")
-                      )
+                      ) |> rem_button_aria_label()
                       
                       
                     ) #fluidRow
@@ -330,7 +338,10 @@ home <- tabItem(
                    
                    h1("Version information"),
                    
-                   p("Prospective 1.0 release date: Jan 16th 2024")
+                   p("Prospective 1.0 release date: 16 January 2024"),
+                   
+                   br(),
+                   p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
                    
                    )
              )
@@ -375,6 +386,7 @@ feeding_charts <- tabItem(
                           h4(textOutput("feeding_perc_title"), style = "text-align: center;"),
                           loading(plotlyOutput("feeding_perc_plotly", height = "300px"))
                       ),
+                      
                       box(width = 12, solidHeader = TRUE,
                           
                           p("The above plot is set up to display multiple lines at 
@@ -409,7 +421,11 @@ feeding_charts <- tabItem(
                       box(width = 12,
                           h4(textOutput("feeding_numbers_title"), style = "text-align: center;"),
                           loading(plotlyOutput("feeding_numbers_plotly", height = "300px"))
-                          )
+                      ),
+                      
+                      box(width = 12, solidHeader = TRUE,
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
+                      )
                     ) #fluidRow
            ), #tabPanel
            
@@ -427,11 +443,10 @@ feeding_charts <- tabItem(
                       ),
                       box(width = 2, solidHeader = TRUE,
                           br(),
-                          actionBttn(inputId = "update_feeding_comparison",
-                                     label = "Update View",
-                                     style = "unite", 
-                                     color = "royal"
-                                     ) #comparison graph only updates when this button is pressed
+                          actionButton(inputId = "update_feeding_comparison",
+                                       label = "Update View",
+                                       class = "btn-lg"
+                                       ) #comparison graph only updates when this button is pressed
                           )
                     ), #fluidRow
                     
@@ -439,7 +454,9 @@ feeding_charts <- tabItem(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("feeding_comparison_title"), style = "text-align: center;"),
                           loading(plotlyOutput("feeding_comparison_plotly", height = "600px")),
-                          br(),
+                      ),
+                      
+                      box(width = 12, solidHeader = TRUE,
                           
                           p("This tab allows users to compare multiple health boards 
                             or council areas to each other, as well as to the total 
@@ -461,7 +478,10 @@ feeding_charts <- tabItem(
                           
                           p("Please be aware that with many regions selected at once 
                             the dashboard may be slow to produce all of the graphs 
-                            for these regions. ")
+                            for these regions. "),
+                          
+                          br(),
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
                           
                           )
                     ) #fluidRow
@@ -504,7 +524,7 @@ feeding_about <- tabItem(
                       ),
                       
                       box(title = "Data source and definitions",
-                          width = 5,
+                          width = 6,
                           p("Data Source:",
                             tags$a(
                               href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
@@ -525,9 +545,11 @@ feeding_about <- tabItem(
 
                 <li><strong>Ever breastfed</strong>: babies who have ever been fed 
                 breast milk between birth and the time of review.</li>
+                                        </ul>
                 
                 <br>
                 
+                <ul>
                 <li><strong>Denominators</strong>: the denominator used to calculate 
                 the percentage of babies in each of these groups is the number of
                 reviews in which there is valid data recorded (i.e. not ‘missing’ 
@@ -537,7 +559,7 @@ feeding_about <- tabItem(
                 median value of the period specified. </li>
                 
                 <li><strong>Geography</strong>: data is reported by the Health Board
-                and Council Area residence recorded at the time of review.</li>
+                and Council Area of residence recorded at the time of review.</li>
                 
                 <li><strong>Time</strong>: data is reported by the date at which 
                 the review was conducted (“review date data”). Note that this is 
@@ -590,7 +612,10 @@ development_charts <- tabItem(
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_percentage_concern_title"), style = "text-align: center;"),
-                          loading(plotlyOutput("development_percentage_concern_plotly", height = "300px")),
+                          loading(plotlyOutput("development_percentage_concern_plotly", height = "300px"))
+                      ),
+                      
+                      box(width = 12, solidHeader = TRUE,
                           
                           p("We have used runcharts to present the data above. 
                           Run charts use a series of rules to help identify unusual 
@@ -619,6 +644,10 @@ development_charts <- tabItem(
                       box(width = 12,
                           h4(textOutput("development_numbers_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_numbers_plotly", height = "300px"))
+                          ),
+                      
+                      box(width = 12, solidHeader = TRUE,
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
                           )
                     ) #fluidRow
            ), #tabPanel
@@ -636,10 +665,9 @@ development_charts <- tabItem(
                       ),
                       box(width = 2, solidHeader = TRUE,
                           br(),
-                          actionBttn(inputId = "update_development_comparison",
+                          actionButton(inputId = "update_development_comparison",
                                        label = "Update View",
-                                       style = "unite", 
-                                       color = "royal"
+                                       class = "btn-lg"
                                        ) #comparison graph only updates when this button is pressed
                       )
                     ), #fluidRow
@@ -648,7 +676,9 @@ development_charts <- tabItem(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_comparison_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_comparison_plotly", height = "600px")),
-                          br(),
+                      ),
+                      
+                      box(width = 12, solidHeader = TRUE,
 
                           p("This tab allows users to compare multiple health boards 
                             or council areas to each other, as well as to the total 
@@ -668,9 +698,8 @@ development_charts <- tabItem(
                             creating these graphs - but are only applied once the 
                             Update View button is pressed."),
                           
-                          p("Please be aware that with many regions selected at once 
-                            the dashboard may be slow to produce all of the graphs 
-                            for these regions. ")
+                          br(),
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
                           
                           )
                     ) #fluidRow
@@ -680,32 +709,34 @@ development_charts <- tabItem(
            tabPanel(title = "Developmental domains",
                     
                     fluidRow(
-                      box(width = 9, solidHeader = TRUE,
+                      box(width = 7, solidHeader = TRUE,
                           #widget to select which developmental domains to display on plot
-                          checkboxGroupButtons(
-                            inputId = "domains_selected",
-                            label = "Select which developmental domains to include in the plot:",
-                            choices = domains,
-                            selected = domains,
-                            status = "primary",
-                            checkIcon = list(
-                              yes = icon("square-check") |> rem_aria_label(),
-                              no = icon("square") |> rem_aria_label())
-                          )
+                          uiOutput("domains_selector")
                       ),
+                      
+                      box(width = 2, solidHeader = TRUE,
+                          br(),
+                          actionButton(inputId = "select_all_domains",
+                                       label = "Select all"),
+                          actionButton(inputId = "deselect_all_domains",
+                                       label = "Deselect all")
+                      ),
+                      
                       box(width = 3, solidHeader = TRUE,
                           downloadButton(outputId = "domains_download", #currently not operational
                                          label = "Download developmental domains data",
                                          icon = shiny::icon("download") |> rem_aria_label()
-                          ) 
+                          )
                       )
                     ), #fluidRow
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
-                          
                           h4(textOutput("development_concerns_by_domain_title"), style = "text-align: center;"),
-                          loading(plotlyOutput("development_concerns_by_domain_plotly", height = "300px")),
+                          loading(plotlyOutput("development_concerns_by_domain_plotly", height = "300px"))
+                      ),
+                      
+                      box(width = 12, solidHeader = TRUE,
                           
                           p("The above plot is set up to display multiple lines at 
                             once in a line graph comparing multiple catagories. When
@@ -726,7 +757,10 @@ development_charts <- tabItem(
                           6 or more consecutive points above or below the centreline 
                           are denoted with a star symbol. Where there are 5 or more
                           consecutively increasing or decreasing points, a semi-transparent 
-                          shadow appears over the original line.")
+                          shadow appears over the original line."),
+                          
+                          br(),
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
                       )
                     ) #fluidRow
            ), #tabPanel
@@ -735,21 +769,19 @@ development_charts <- tabItem(
            ###SIMD quintiles ----
            tabPanel(title = "SIMD quintiles",
                     fluidRow(
-                      box(width = 9, solidHeader = TRUE,
-                          #widget to select which SIMD quintiles to display
-                          checkboxGroupButtons(
-                            inputId = "simd_levels",
-                            label = "Select which SIMD quintiles to show. This 
-                            scale ranges from 1 being the most deprived to 5 
-                            being the least deprived.",
-                            choices = c(1:5),
-                            selected = c(1, 5),
-                            status = "primary",
-                            checkIcon = list(
-                              yes = icon("square-check") |> rem_aria_label(),
-                              no = icon("square") |> rem_aria_label())
-                            )
-                          ),
+                      box(width = 7, solidHeader = TRUE,
+                          #widget to select which developmental domains to display on plot
+                          uiOutput("simd_selector")
+                      ),
+                      
+                      box(width = 2, solidHeader = TRUE,
+                          br(),
+                          actionButton(inputId = "select_all_simd",
+                                       label = "Select all"),
+                          actionButton(inputId = "deselect_all_simd",
+                                       label = "Deselect all")
+                      ),
+                      
                       box(width = 3, solidHeader = TRUE,
                           downloadButton(outputId = "simd_download", #currently not operational
                                          label = "Download SIMD data",
@@ -761,7 +793,10 @@ development_charts <- tabItem(
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_concerns_by_simd_title"), style = "text-align: center;"),
-                          loading(plotlyOutput("development_concerns_by_simd_plotly", height = "300px")),
+                          loading(plotlyOutput("development_concerns_by_simd_plotly", height = "300px"))
+                      ),
+                      
+                      box(width = 12, solidHeader = TRUE,
                           
                           p("The above plot is set up to display multiple lines at 
                             once in a line graph comparing multiple catagories. When
@@ -782,7 +817,10 @@ development_charts <- tabItem(
                           6 or more consecutive points above or below the centreline 
                           are denoted with a star symbol. Where there are 5 or more
                           consecutively increasing or decreasing points, a semi-transparent 
-                          shadow appears over the original line.")
+                          shadow appears over the original line."),
+                          
+                          br(),
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
                           
                       ) #box
                     ) #fluidRow
@@ -838,7 +876,7 @@ development_about <- tabItem(
                       ),
                       
                       box(title = "Data source and definitions",
-                          width = 5,
+                          width = 6,
                           p("Data Source:",
                             tags$a(
                               href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
@@ -859,9 +897,11 @@ development_about <- tabItem(
                 domains at that review. The values that can be recorded are N (no
                 concerns), C (concern newly suspected), or P (concern previously 
                 identified). </li>
+                                        </ul>
                 
                 <br>
                 
+                <ul>
                 <li><strong>Denominators</strong>: the denominator used to calculate
                 the percentage of children with one or more developmental concerns 
                 is the total number of reviews undertaken. It is not necessary for 
@@ -951,4 +991,4 @@ tagList( #needed for shinyjs
     sidebar,
     body
   ) # dashboardPage
-) |> secure_app() #comment out to remove authentication
+) #|> secure_app() #comment out to remove authentication
