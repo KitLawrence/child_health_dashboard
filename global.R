@@ -63,8 +63,8 @@ line_colours <- c("#3F3685", #phs-purple
                   "#9B4393", #phs-magenta
                   "#1E7F84", #phs-teal
                   "#C73918", #phs-rust
-                  "#D26146", #phs-rust-80
-                  "#D26146", #phs-rust-80
+                  "#000000", #black
+                  "#000000", #black
                   
                   "#3F3685", #phs-purple
                   "#9B4393", #phs-magenta

@@ -42,7 +42,7 @@ function(input, output, session) {
     if (!("All Scotland" %in% selected$geog_level)) {
       pickerInput(
         inputId = "geog_chosen_feeding",
-        label = paste0("Select ", selected$geog_level, ":"),
+        label = paste0("Select ", selected$geog_level, " of residence:"),
         choices = geog_choices(), #reactive element that switches options based on geog level choice
         selected = selected$geog, #syncs this with the equivalent choice on the child development tab
         choicesOpt = list(
@@ -60,7 +60,7 @@ function(input, output, session) {
     if (!("All Scotland" %in% selected$geog_level)) {
       pickerInput(
         inputId = "geog_chosen_development",
-        label = paste0("Select ", selected$geog_level, ":"),
+        label = paste0("Select ", selected$geog_level, " of residence:"),
         choices = geog_choices(), #reactive element that switches options based on geog level choice
         selected = selected$geog, #syncs this with the equivalent choice on the infant feeding tab
         choicesOpt = list(
@@ -101,7 +101,7 @@ function(input, output, session) {
       inputId = "geog_comparison_list_feeding",
       label = paste0("Select ", 
                      selected$geog_comparison_level,
-                     "s to display:"),
+                     "s of residence to display:"),
       choices = comparison_choices(), #reactive element that switches options based on geog level choice
       selected = selected$geog_comparison_list, #syncs this with the equivalent choice on the child development tab
       multiple = TRUE,
@@ -115,7 +115,7 @@ function(input, output, session) {
       inputId = "geog_comparison_list_development",
       label = paste0("Select ", 
                      selected$geog_comparison_level,
-                     "s to display:"),
+                     "s of residence to display:"),
       choices = comparison_choices(), #reactive element that switches options based on geog level choice
       selected =  selected$geog_comparison_list, #syncs this with the equivalent choice on the infant feeding tab
       multiple = TRUE,
@@ -132,7 +132,8 @@ function(input, output, session) {
                              geog_comparison_level = "Health Board",
                              geog_comparison_list = HBnames,
                              domains = domains,
-                             simd = c(1,5))
+                             simd = c(1,5),
+                             update = 1)
   
   #update geography level each time it is changed on either page
   observeEvent(input$geog_level_chosen_feeding, 
@@ -230,6 +231,13 @@ function(input, output, session) {
   
   observeEvent(input$deselect_all_simd,
                selected$simd <- numeric(0))
+  
+  
+  observeEvent(input$update_feeding_comparison,
+               selected$update <- selected$update + 1)
+  
+  observeEvent(input$update_development_comparison,
+               selected$update <- selected$update + 1)
   
   #based on how many health boards / council areas have been selected,
   #this reactive element tells plotly how many rows to put into the comparison grid
@@ -345,19 +353,20 @@ function(input, output, session) {
   output$feeding_perc_plotly <- renderPlotly({
     
     data <- feeding_perc_data() #read in the dataset
-    ymax <- min(c(max(c(data$measure, 0)), 100)) #determine the y-axis max for the plot
+    ymax <- min(c(max(c(data$measure, 0)), 100)) * 1.05 #determine the y-axis max for the plot
     
     #create the basic line plot
     plot <- plot_ly(data = data,
                     x = ~ date,
-                    text = ~ first(geography)) |>
+                    text = ~ paste0("<b>", geography, "</b>",
+                                    "<br><i>", category, "</i>")) |>
       add_trace(y = ~ measure,
                 type = "scatter",
                 mode = "lines+markers",
                 color = ~ category,
                 symbol = ~ category,
                 colors = line_colours,
-                hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}"
+                hovertemplate = "%{text}<br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}<extra></extra>"
                 )
       
     
@@ -368,7 +377,7 @@ function(input, output, session) {
                   type = "scatter",
                   mode = "lines",
                   name = "Pre-pandemic median",
-                  hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%",
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
                   line = list(color = line_colours[input$feeding_type], #match the other present line colour
                               dash = "4")
                   ) |>
@@ -377,25 +386,31 @@ function(input, output, session) {
                   type = "scatter",
                   mode = "lines",
                   name = "Trend of 5 points or more",
-                  hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}",
+                  hovertemplate = "%{text}<br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}<extra></extra>",
                   line = list(color = colour_switch(line_colours[input$feeding_type], 0.2), #adds alpha to colour
                               width = 10)
         ) |>
-        #adds star symbol for shift points
-        add_trace(y = ~ measure / shift,
+        #mark shifts by arrows around median
+        add_trace(y = ~ median / (shift %% 2),
                   type = "scatter",
-                  mode = "markers",
-                  name = "Shift of 6 points or more",
-                  hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}",
-                  marker = list(color = line_colours[input$feeding_type],
-                                symbol = "star",
-                                size = 10)) |>
+                  mode = "markers", 
+                  name = "Upwards shift of 6 points or more",
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                  marker = list(color =  line_colours[input$feeding_type],
+                                symbol = "arrow-up-open")) |>
+        add_trace(y = ~ median / (shift %/% 2),
+                  type = "scatter",
+                  mode = "markers", 
+                  name = "Downwards shift of 6 points or more",
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                  marker = list(color =  line_colours[input$feeding_type],
+                                symbol = "arrow-down-open")) |>
         #adds a solid median line for the points from which the median is defined
         add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                   type = "scatter",
                   mode = "lines",
                   showlegend = FALSE,
-                  hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%",
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
                   line = list(color = line_colours[input$feeding_type])  #match the other present line colour
                   )
     }
@@ -441,18 +456,43 @@ function(input, output, session) {
   output$feeding_numbers_plotly <- renderPlotly({
     
     data <- feeding_nums_data()
-    ymax <- max(c(data$measure, 0))
+    ymax <- max(c(data$measure, 0)) * 1.05
     
-    plot_ly(data = data,
-            x = ~ date,
-            y = ~ measure,
-            type = "scatter",
-            mode = "lines+markers",
-            color = ~ category,
-            symbol = ~ category,
-            colors = line_colours,
-            text = ~ first(geography),
-            hovertemplate = "<b>%{text}</b><br>Number of reviews: %{y}<br>Month of review: %{x|%B %Y}") |>
+    plot_ly() |>
+      add_trace(data = data |> filter(category == "Reviews"),
+                x = ~ date,
+                y = ~ measure,
+                type = "scatter",
+                mode = "lines+markers",
+                symbol = ~ category,
+                color = ~ category,
+                colors = line_colours,
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br><i>", category, "</i>"),
+                hovertemplate = "%{text}<br>Number of reviews: %{y}<br>Month of review: %{x|%B %Y}<extra></extra>"
+                ) |>
+      add_trace(data = data |> filter(category == "Valid reviews"),
+                x = ~ date,
+                y = ~ measure,
+                type = "scatter",
+                mode = "lines",
+                name = "Valid reviews",
+                line = list(dash = "dash",
+                            color = line_colours["Valid reviews"]),
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br><i>", category, "</i>"),
+                hovertemplate = "%{text}<br>Number of reviews: %{y}<br>Month of review: %{x|%B %Y}<extra></extra>") |>
+      add_trace(data = data |> filter(!(category %in% c("Reviews","Valid reviews"))),
+                x = ~ date,
+                y = ~ measure,
+                type = "scatter",
+                mode = "lines+markers",
+                color = ~ category,
+                symbol = ~ category,
+                colors = line_colours,
+                text = ~ paste0("<b>", geography, "</b>", 
+                                "<br><i>", category, "</i>"),
+                hovertemplate = "%{text}<br>Number of reviews: %{y}<br>Month of review: %{x|%B %Y}<extra></extra>") |>
       config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0,ymax),
                           title = list(text = "Number of reviews")),
@@ -480,9 +520,10 @@ function(input, output, session) {
            " at ",
            feeding_data_name())
   })
+
   
   #wrangles the data to be fed into the plots
-  feeding_comparison_data <- eventReactive(input$update_feeding_comparison, {
+  feeding_comparison_data <- eventReactive(selected$update, {
     feeding_percentage_data[[input$feeding_data]] |>
       filter(geography %in% selected$geog_comparison_list &
                category %in% input$feeding_type)
@@ -493,7 +534,7 @@ function(input, output, session) {
     if(length(isolate(selected$geog_comparison_list)) >= 1) {
       
       data <- feeding_comparison_data()
-      ymax <- min(c(max(c(data$measure, 0)), 100))
+      ymax <- min(c(max(c(data$measure, 0)), 100)) * 1.05
       
       data |>      
         group_by(geography) %>%
@@ -506,8 +547,9 @@ function(input, output, session) {
                            line = list(width = 1),
                            marker = list(size = 3),
                            colors = line_colours,
-                           text = first(.$geography),
-                           hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}",
+                           text = paste0("<b>", .$geography, "</b>", 
+                                         "<br><i>", .$category, "</i>"),
+                           hovertemplate = "%{text}<br>% of reviews: %{y:.2f}%<br>Month of review: %{x|%B %Y}<extra></extra>",
                            showlegend = (isolate(selected$geog_comparison_list)[1] %in% .$geography)) |>
              layout(annotations = list(
                x = 0.5,
@@ -598,23 +640,31 @@ function(input, output, session) {
   output$development_percentage_concern_plotly <- renderPlotly({
     data <- development_percentage_concern_data()
     
-    ymax <- max(data$measure)
+    ymax <- max(data$measure) * 1.05
     
     plot_ly(data = data,
-            x =  ~ date,
-            text = ~ first(geography)) |>
+            x =  ~ date
+            ) |>
       add_trace(y =  ~ measure,
                 type = "scatter",
                 mode = "lines+markers",
                 name = "% of reviews",
                 marker = list(color = "#9B4393"), #phs-magenta
                 line = list(color = "#9B4393"), #phs-magenta
-                hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}<extra></extra>") |>
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br>% of reviews: ", round(measure, 2), "%",
+                                "<br>Quarter of review: ", 
+                                month(date, label = TRUE), "-", month(date + 62, label = TRUE),
+                                " ", year(date)
+                                ),
+                hovertemplate = "%{text}<extra></extra>") |>
       add_trace(y = ~ median,
                 type = "scatter",
                 mode = "lines",
                 name = "Pre-pandemic median",
-                hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br>Pre-pandemic median: ", round(median, 2), "%"),
+                hovertemplate = "%{text}<extra></extra>",
                 line = list(color = "#9B4393", #phs-magenta
                             dash = "4")
                 ) |>
@@ -622,23 +672,41 @@ function(input, output, session) {
                 type = "scatter",
                 mode = "lines",
                 name = "Trend of 5 points or more",
-                hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}<extra></extra>",
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br>% of reviews: ", round(measure, 2), "%",
+                                "<br>Quarter of review: ", 
+                                month(date, label = TRUE), "-", month(date + 62, label = TRUE),
+                                " ", year(date)
+                                ),
+                hovertemplate = "%{text}<extra></extra>",
                 line = list(color = colour_switch("#9B4393", 0.2), #adds aplha to phs-magenta colour
                             width = 10)
                 ) |>
-      add_trace(y = ~ measure / shift,
+      add_trace(y = ~ median / (shift %% 2),
                 type = "scatter",
-                mode = "markers",
-                name = "Shift of 6 points or more",
-                hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}<extra></extra>",
+                mode = "markers", 
+                name = "Upwards shift of 6 points or more",
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br>Pre-pandemic median: ", round(median, 2), "%"),
+                hovertemplate = "%{text}<extra></extra>",
                 marker = list(color = "#9B4393",
-                              symbol = "star",
-                              size = 10)) |>
+                              symbol = "arrow-up-open")) |>
+      add_trace(y = ~ median / (shift %/% 2),
+                type = "scatter",
+                mode = "markers", 
+                name = "Downwards shift of 6 points or more",
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br>Pre-pandemic median: ", round(median, 2), "%"),
+                hovertemplate = "%{text}<extra></extra>",
+                marker = list(color = "#9B4393",
+                              symbol = "arrow-down-open")) |>
       add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                 type = "scatter",
                 mode = "lines",
                 showlegend = FALSE,
-                hovertemplate = "<b>%{text}</b><br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br>Pre-pandemic median: ", round(median, 2), "%"),
+                hovertemplate = "%{text}<extra></extra>",
                 line = list(color = "#9B4393") #phs-magenta
                 ) |>
     config(displayModeBar = FALSE) |>
@@ -669,9 +737,10 @@ function(input, output, session) {
   output$development_numbers_plotly <- renderPlotly({
     
     data <- development_nums_data()
-    ymax <- max(data$measure)
+    ymax <- max(data$measure) * 1.05
     
-    plot_ly(data = data,
+    plot_ly() |>
+      add_trace(data = data |> filter(category == "Reviews"),
             x = ~ date,
             y = ~ measure,
             type = "scatter",
@@ -679,8 +748,46 @@ function(input, output, session) {
             color = ~ category,
             symbol = ~ category,
             colors = line_colours,
-            text = ~ first(geography),
-            hovertemplate = "<b>%{text}</b><br>Number of reviews: %{y}<br>Quarter of review: %{x|%B %Y}") |>
+            text = ~ paste0("<b>", geography, "</b>",
+                            "<br><i>", category, "</i>",
+                            "<br>Number of reviews: ", round(measure, 2),
+                            "<br>Quarter of review: ", 
+                            month(date, label = TRUE), "-", month(date + 62, label = TRUE),
+                            " ", year(date)
+            ),
+            hovertemplate = "%{text}<extra></extra>") |>
+      add_trace(data = data |> filter(category == "Meaningful reviews"),
+                x = ~ date,
+                y = ~ measure,
+                type = "scatter",
+                mode = "lines",
+                color = ~ category,
+                line = list(dash = "dash"),
+                colors = line_colours,
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br><i>", category, "</i>",
+                                "<br>Number of reviews: ", round(measure, 2),
+                                "<br>Quarter of review: ", 
+                                month(date, label = TRUE), "-", month(date + 62, label = TRUE),
+                                " ", year(date)
+                ),
+                hovertemplate = "%{text}<extra></extra>") |>
+      add_trace(data = data |> filter(!(category %in% c("Reviews", "Meaningful reviews"))),
+                x = ~ date,
+                y = ~ measure,
+                type = "scatter",
+                mode = "lines+markers",
+                color = ~ category,
+                symbol = ~ category,
+                colors = line_colours,
+                text = ~ paste0("<b>", geography, "</b>",
+                                "<br><i>", category, "</i>",
+                                "<br>Number of reviews: ", round(measure, 2),
+                                "<br>Quarter of review: ", 
+                                month(date, label = TRUE), "-", month(date + 62, label = TRUE),
+                                " ", year(date)
+                ),
+                hovertemplate = "%{text}<extra></extra>") |>
       config(displayModeBar = FALSE) |>
       layout(yaxis = list(range = c(0, ymax),
                           title = list(text = "Number of reviews")),
@@ -702,7 +809,7 @@ function(input, output, session) {
   })
   
   #wrangles the data to be fed into the plots
-  development_comparison_data <- eventReactive(input$update_development_comparison,{
+  development_comparison_data <- eventReactive(selected$update,{
     development_percentage_data[[input$development_data]] |>
       filter(geography %in% selected$geog_comparison_list)
   })
@@ -712,7 +819,7 @@ function(input, output, session) {
     if(length(isolate(selected$geog_comparison_list)) >= 1) {
       
       data <- development_comparison_data()
-      ymax <- max(data$measure)
+      ymax <- max(data$measure) * 1.05
       
       data |>
         group_by(geography) %>%
@@ -724,8 +831,13 @@ function(input, output, session) {
                                        width = 1), 
                            marker = list(color = "#9B4393",#phs-magenta
                                          size = 3),
-                           text = first(.$geography),
-                           hovertemplate = "<b>%{text}</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}<extra></extra>") |>
+                           text = ~ paste0("<b>", .$geography, "</b>",
+                                           "<br>% of reviews: ", round(.$measure, 2), "%",
+                                           "<br>Quarter of review: ", 
+                                           month(.$date, label = TRUE), "-", month(.$date + 62, label = TRUE),
+                                           " ", year(.$date)
+                           ),
+                           hovertemplate = "%{text}<extra></extra>",) |>
              layout(showlegend = FALSE,
                     annotations = list(
                       x = 0.5,
@@ -809,7 +921,7 @@ function(input, output, session) {
   output$development_concerns_by_domain_plotly <- renderPlotly({
     
     data <- development_concerns_by_domain_data()
-    ymax <- max(data$measure)
+    ymax <- max(data$measure) * 1.05
     
     plot <- plot_ly(data = data,
             x = ~ date) |>
@@ -820,7 +932,14 @@ function(input, output, session) {
                 symbol = ~ category,
                 colors = line_colours,
                 symbols = domain_symbols,
-                hovertemplate = "<b>All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}")
+                text = ~ paste0("<b>All Scotland</b>",
+                                "<br><i>", category, "</i>",
+                                "<br>% of reviews: ", round(measure, 2), "%",
+                                "<br>Quarter of review: ", 
+                                month(date, label = TRUE), "-", month(date + 62, label = TRUE),
+                                " ", year(date)
+                ),
+                hovertemplate = "%{text}<extra></extra>")
     
     if(length(input$domains_selected) == 1) {
       plot <- plot |>
@@ -828,7 +947,9 @@ function(input, output, session) {
                   type = "scatter",
                   mode = "lines",
                   name = "Pre-pandemic median",
-                  hovertemplate = "<b>All Scotland</b><br>Pre-pandemic median: %{y:.2f}%",
+                  text = ~ paste0("<b>All Scotland</b>",
+                                  "<br><i>", category, "</i>"),
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
                   line = list(color = line_colours[input$domains_selected], #match the other present line colour
                               dash = "4")
         ) |>
@@ -836,24 +957,43 @@ function(input, output, session) {
                   type = "scatter",
                   mode = "lines",
                   name = "Trend of 5 points or more",
-                  hovertemplate = "<b>All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}",
+                  text = ~ paste0("<b>All Scotland</b>",
+                                  "<br><i>", category, "</i>",
+                                  "<br>% of reviews: ", round(measure, 2), "%",
+                                  "<br>Quarter of review: ", 
+                                  month(date, label = TRUE), "-", month(date + 62, label = TRUE),
+                                  " ", year(date)
+                  ),
+                  hovertemplate = "%{text}<extra></extra>",
                   line = list(color = colour_switch(line_colours[input$domains_selected], 0.2), #adds alpha to colour
                               width = 10)
         ) |>
-        #adds star symbol for shift points
-        add_trace(y = ~ measure / shift,
+        #mark shifts by arrows around median
+        add_trace(y = ~ median / (shift %% 2),
                   type = "scatter",
-                  mode = "markers",
-                  name = "Shift of 6 points or more",
-                  hovertemplate = "All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}",
-                  marker = list(color = line_colours[input$domains_selected],
-                                symbol = "star",
-                                size = 10)) |>
+                  mode = "markers", 
+                  name = "Upwards shift of 6 points or more",
+                  text = ~ paste0("<b>All Scotland</b>",
+                                  "<br><i>", category, "</i>"),
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                  marker = list(color =  line_colours[input$domains_selected],
+                                symbol = "arrow-up-open")) |>
+        add_trace(y = ~ median / (shift %/% 2),
+                  type = "scatter",
+                  mode = "markers", 
+                  name = "Downwards shift of 6 points or more",
+                  text = ~ paste0("<b>All Scotland</b>",
+                                  "<br><i>", category, "</i>"),
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                  marker = list(color =  line_colours[input$domains_selected],
+                                symbol = "arrow-down-open")) |>
         add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                   type = "scatter",
                   mode = "lines",
                   showlegend = FALSE,
-                  hovertemplate = "<b>All Scotland</b><br>Pre-pandemic median: %{y:.2f}%",
+                  text = ~ paste0("<b>All Scotland</b>",
+                                  "<br><i>", category, "</i>"),
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
                   line = list(color = line_colours[input$domains_selected])  #match the other present line colour
         )
     }
@@ -913,7 +1053,7 @@ function(input, output, session) {
   output$development_concerns_by_simd_plotly <- renderPlotly({
     
     data <- development_concerns_by_simd_data()
-    ymax <- max(data$measure)
+    ymax <- max(data$measure) * 1.05
     
     plot <- plot_ly(data = data,
             x = ~ date) |>
@@ -923,7 +1063,14 @@ function(input, output, session) {
                 color = ~ category,
                 symbol = ~ category,
                 colors = line_colours,
-                hovertemplate = "<b>All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}")
+                text = ~ paste0("<b>All Scotland</b>",
+                                "<br><i>SIMD quintile: ", category, "</i>",
+                                "<br>% of reviews: ", round(measure, 2), "%",
+                                "<br>Quarter of review: ", 
+                                month(date, label = TRUE), "-", month(date + 62, label = TRUE),
+                                " ", year(date)
+                ),
+                hovertemplate = "%{text}<extra></extra>")
     
     if(length(input$simd_levels) == 1) {
       plot <- plot |>
@@ -931,7 +1078,9 @@ function(input, output, session) {
                   type = "scatter",
                   mode = "lines",
                   name = "Pre-pandemic median",
-                  hovertemplate = "<b>All Scotland</b><br>Pre-pandemic median: %{y:.2f}%",
+                  text = ~ paste0("<b>All Scotland</b>",
+                                  "<br><i>SIMD quintile: ", category, "</i>"),
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
                   line = list(color = line_colours[input$simd_levels], #match the other present line colour
                               dash = "4")
         ) |>
@@ -939,24 +1088,43 @@ function(input, output, session) {
                   type = "scatter",
                   mode = "lines",
                   name = "Trend of 5 points or more",
-                  hovertemplate = "<b>All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}",
+                  text = ~ paste0("<b>All Scotland</b>",
+                                  "<br><i>SIMD quintile: ", category, "</i>",
+                                  "<br>% of reviews: ", round(measure, 2), "%",
+                                  "<br>Quarter of review: ", 
+                                  month(date, label = TRUE), "-", month(date + 62, label = TRUE),
+                                  " ", year(date)
+                  ),
+                  hovertemplate = "%{text}<extra></extra>",
                   line = list(color = colour_switch(line_colours[input$simd_levels], 0.2), #adds alpha to colour
                               width = 10)
         ) |>
-        #adds star symbol for shift points
-        add_trace(y = ~ measure / shift,
+        #mark shifts by arrows around median
+        add_trace(y = ~ median / (shift %% 2),
                   type = "scatter",
-                  mode = "markers",
-                  name = "Shift of 6 points or more",
-                  hovertemplate = "All Scotland</b><br>% of reviews: %{y:.2f}%<br>Quarter of review: %{x|%B %Y}",
-                  marker = list(color = line_colours[input$simd_levels],
-                                symbol = "star",
-                                size = 10)) |>
+                  mode = "markers", 
+                  name = "Upwards shift of 6 points or more",
+                  text = ~ paste0("<b>All Scotland</b>",
+                                  "<br><i>SIMD quintile: ", category, "</i>"),
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                  marker = list(color =  line_colours[input$simd_levels],
+                                symbol = "arrow-up-open")) |>
+        add_trace(y = ~ median / (shift %/% 2),
+                  type = "scatter",
+                  mode = "markers", 
+                  name = "Downwards shift of 6 points or more",
+                  text = ~ paste0("<b>All Scotland</b>",
+                                  "<br><i>SIMD quintile: ", category, "</i>"),
+                  hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
+                  marker = list(color =  line_colours[input$simd_levels],
+                                symbol = "arrow-down-open")) |>
       add_trace(y = ~ median / (date <= ymd("2020-02-01")),
                 type = "scatter",
                 mode = "lines",
                 showlegend = FALSE,
-                hovertemplate = "<b>All Scotland</b><br>Pre-pandemic median: %{y:.2f}%",
+                text = ~ paste0("<b>All Scotland</b>",
+                                "<br><i>SIMD quintile: ", category, "</i>"),
+                hovertemplate = "%{text}<br>Pre-pandemic median: %{y:.2f}%<extra></extra>",
                 line = list(color = line_colours[input$simd_levels])  #match the other present line colour
       )
     }
@@ -996,9 +1164,32 @@ function(input, output, session) {
       )
     }
   )
+  
+  output$feeding_comparison_download <- downloadHandler(
+    
+    filename = paste0(extract_date, "_infant_feeding.xlsx"),
+    
+    content = \(file) {
+      openxlsx::saveWorkbook(
+        openxlsx::loadWorkbook(paste0("downloads/", extract_date, "_infant_feeding.xlsx")),
+        file
+      )
+    }
+  )
 
   
   output$development_download <- downloadHandler(
+    filename = paste0(extract_date, "_child_development.xlsx"),
+    
+    content = \(file) {
+      openxlsx::saveWorkbook(
+        openxlsx::loadWorkbook(paste0("downloads/", extract_date, "_child_development.xlsx")),
+        file
+      )
+    }
+  )
+  
+  output$development_comparison_download <- downloadHandler(
     filename = paste0(extract_date, "_child_development.xlsx"),
     
     content = \(file) {
@@ -1039,8 +1230,9 @@ function(input, output, session) {
   # Testing! ----
   # little sidebar dev app to display variables for testing
   # output$testing <- renderPrint({
-  #   str_view(c(paste0("A ", input$domains_selected),
-  #              paste0("B ", selected$domains)
+  #   str_view(c(paste0("A ", input$update_feeding_comparison),
+  #              paste0("B ", input$update_development_comparison),
+  #              paste0("C ", selected$update)
   #   ))
   # })
   

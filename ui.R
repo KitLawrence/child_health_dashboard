@@ -16,7 +16,7 @@ header <- dashboardHeader(
   title = dashboardtitle,
   titleWidth = 290,
   tags$li(class = "dropdown",
-          tags$p("Health in the Early Years in Scotland (HEYS) Dashboard v0.1")
+          tags$p("Health in the Early Years in Scotland (HEYS) Dashboard v0.2")
   )
 )
 
@@ -110,6 +110,8 @@ home <- tabItem(
                                    on child health outcomes, see the ‘Background’ tab.")
                           ),
                     
+                      p("Click +/- to open and close the sections below", 
+                        style = "text-align: right;"),
                       
                       box(width = 12, #solidHeader = TRUE, 
                           collapsible = TRUE, collapsed = TRUE, #status = "primary",
@@ -135,7 +137,7 @@ home <- tabItem(
                           collapsible = TRUE, collapsed = TRUE, #status = "primary",
                           title = p(strong("Infant feeding details")),
                           
-                          p("Within the infant feeding data, select from the options 
+                          p("Within the infant feeding page, select from the options 
                             in the sidebar to show information about feeding at 
                             the Health Visitor first visit (around 10 days of age),
                             or the review at 6-8 weeks of age. You can also select 
@@ -151,12 +153,10 @@ home <- tabItem(
                           collapsible = TRUE, collapsed = TRUE, #status = "primary",
                           title = p(strong("Child development details")),
                           
-                          p("Within the child development data, select from the options
+                          p("Within the child development page, select from the options
                             in the sidebar to show information about outcomes 
                             of the 13-15 month review, 27-30 month review, or 4-5
-                            year review."),
-                          
-                          p("There are further tabs along the top to show information 
+                            year review. There are further tabs along the top to show information 
                             about outcomes by developmental domain and by SIMD at 
                             Scotland level only. It is possible to select which domains
                             or SIMD quintiles you wish to see in these charts by 
@@ -236,7 +236,7 @@ home <- tabItem(
                                  tags$div(HTML("<ul>
                 <li><strong>Shifts:</strong> Six or more consecutive data points above or below
                             the centreline. Points on the centreline neither break nor contribute
-                            to a shift (such points are marked with a star symbol on charts). </li>
+                            to a shift (such points are marked with arrows along the median on charts). </li>
 
                 <li><strong>Trends:</strong> Five or more consecutive data points which are
                 increasing or decreasing. An observation that is the same as the preceding value
@@ -276,31 +276,30 @@ home <- tabItem(
                    
                    p("This dashboard has been developed by Public Health Scotland 
                      to provide timely, quarterly information on health outcomes 
-                     among children in Scotland. If follows on from the data presented
+                     among children in Scotland. It follows on from the data presented
                      on the",
                      tags$a(
                        href = "https://scotland.shinyapps.io/phs-covid-wider-impact/",
                        tags$u("COVID Wider Impacts dashboard"),
                        class = "externallink", target = "_blank")
                      ,
-                     " which updated for the last time in October 2023. It also 
+                     " which was updated for the last time in October 2023. It also 
                      exists as a sister dashboard to the ", 
                      tags$a(
                        href = "https://scotland.shinyapps.io/phs-pregnancy-births-neonatal/",
                        tags$u("Scottish Pregnancy, Births and Neonatal Dashboard"),
                        class = "externallink", target = "_blank"),
-                     " (SPBaND)."),
+                     " (SPBAND)."),
                    
                    h2("The child health programme"),
                    
                    p("The data on this dashboard are drawn from routine pre-school 
-                     health reviews that are offered to all children in Scotland. 
-                     Information on this child health programme is available ",
+                     health reviews that are offered to all children in Scotland.",
                      tags$a(
                        href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
-                       tags$u("on the PHS website"),
+                       tags$u("The PHS website"),
                        class = "externallink", target = "_blank"),
-                     "."),
+                     "gives more information on this child health programme."),
                    
                    h2("Publication of data on cohorts of children and by review date"),
                    
@@ -315,7 +314,7 @@ home <- tabItem(
                        tags$u("early childhood development"),
                        class = "externallink", target = "_blank"),
                      " is published each year. This includes an annual report, open 
-                     data, and dashboard which present more detailed information, 
+                     data, and a dashboard which present more detailed information, 
                      such as outcomes by deprivation and ethnicity. These annual 
                      data are based on groups of children as they reach the age at 
                      which they become eligible for each review, known as cohorts. 
@@ -338,10 +337,15 @@ home <- tabItem(
                    
                    h1("Version information"),
                    
-                   p("Prospective 1.0 release date: 16 January 2024"),
+                   p("v0.1 release date: 30 November 2023.",
+                   tags$br(),
+                   "v0.2 release date: 21 December 2023.",
+                   tags$br(),
+                   "Planned 1.0 release date: 16 January 2024."),
                    
                    br(),
-                   p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
+                   p("This dashboard is scheduled to update with new data once per quarter.",
+                   "Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y") |> paste0("."))
                    
                    )
              )
@@ -363,8 +367,8 @@ feeding_charts <- tabItem(
            width = 12,
            height = "25px",
            
-           ###Individual region charts tab----
-           tabPanel(title = "Individual region charts",
+           ###Individual area charts tab----
+           tabPanel(title = "Individual area charts",
                     
                     fluidRow(
                       box(width = 5, solidHeader = TRUE,
@@ -374,7 +378,7 @@ feeding_charts <- tabItem(
                           uiOutput("geog_select_feeding") #widget to select HB / CA
                       ),
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "feeding_download", #currently not operational
+                          downloadButton(outputId = "feeding_download",
                                          label = "Download infant feeding data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                           ) 
@@ -390,30 +394,37 @@ feeding_charts <- tabItem(
                       box(width = 12, solidHeader = TRUE,
                           
                           p("The above plot is set up to display multiple lines at 
-                            once in a line graph comparing multiple catagories. When
-                            only one catagory is selected, this line graph becomes
-                            a runchart by adding a median line as well as shift and 
-                            trend information in line with what is described in the 
+                            once in a line graph comparing multiple categories. 
+                            When only one breastfeeding category is selected this
+                            line graph becomes a runchart. Runcharts use a series 
+                            of rules to help identify unusual behaviour in data and 
+                            indicate patterns that merit further investigation. You
+                            can read more about the rules used in run charts in the 
                             \"How we identify patterns in the data\" section of 
-                            the Home page. These runcharts help identify unusual 
-                            behaviour in data and indicate patterns that merit further 
-                            investigation."),
+                            the Home page."),
                           
-                          p("To provide a basis for identifying patterns in the data,
-                          the chart above uses a solid horizontal line to show the 
-                          average (median) percentage of children who are recorded
-                          as breastfed over the pre-pandemic time period. This line 
-                          is dashed where the median is projected outside that time 
-                          range. Points on the line which are part of a shift of 
-                          6 or more consecutive points above or below the centreline 
-                          are denoted with a star symbol. Where there are 5 or more
-                          consecutively increasing or decreasing points, a semi-transparent 
-                          shadow appears over the original line."),
+                          p("When the chart above is a run chart, the chart uses 
+                            a solid horizontal line to show the average (median) 
+                            percentage of children who are recorded as breastfeeding 
+                            over the pre-pandemic time period. This line is dashed 
+                            where the median is projected outside that time range."),
+                          
+                          p("Where there is a shift of 6 or more consecutive points 
+                            above or below the median line, the median is marked with 
+                            arrows pointing up or down to denote this shift. The 
+                            arrows are placed on the opposite side of the median 
+                            to ensure they do not overlap with the original line.
+                            Where there are 5 or more consecutively increasing or 
+                            decreasing points, a semi-transparent shadow appears 
+                            over the original line."),
                           
                           p("Lastly, the line graph below shows the same categories 
                             as above, but gives the total numbers for these points 
                             rather than percentages. This plot also shows the total 
-                            number of reviews and valid reviews for each month.")
+                            number of reviews and valid reviews for each month. Note
+                            that the line for valid reviews may overlap with the 
+                            line for total number of reviews when close to 100% of 
+                            reviews are valid.")
                           
                           ),
                       
@@ -424,21 +435,27 @@ feeding_charts <- tabItem(
                       ),
                       
                       box(width = 12, solidHeader = TRUE,
-                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y")),
+                          p("Data Source:",
+                            tags$a(
+                              href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
+                              tags$u("CHSP Pre-School"),
+                              class = "externallink", target = "_blank")
+                          )
                       )
                     ) #fluidRow
            ), #tabPanel
            
            
            
-           ###Regional comparisons ----
-           tabPanel(title = "Regional comparisons",
+           ###Area comparisons ----
+           tabPanel(title = "Area comparisons",
                     
                     fluidRow(
-                      box(width = 4, solidHeader = TRUE,
+                      box(width = 3, solidHeader = TRUE,
                           uiOutput("geog_comparison_level_select_feeding") #widget to select geography level
                       ),
-                      box(width = 6, solidHeader = TRUE,
+                      box(width = 4, solidHeader = TRUE,
                           uiOutput("geog_comparison_select_feeding") #widget to select HB ? CA
                       ),
                       box(width = 2, solidHeader = TRUE,
@@ -447,6 +464,12 @@ feeding_charts <- tabItem(
                                        label = "Update View",
                                        class = "btn-lg"
                                        ) #comparison graph only updates when this button is pressed
+                          ),
+                      box(width = 3, solidHeader = TRUE,
+                          downloadButton(outputId = "feeding_comparison_download",
+                                         label = "Download infant feeding data",
+                                         icon = shiny::icon("download") |> rem_aria_label()
+                                         )
                           )
                     ), #fluidRow
                     
@@ -461,27 +484,40 @@ feeding_charts <- tabItem(
                           p("This tab allows users to compare multiple health boards 
                             or council areas to each other, as well as to the total 
                             for all of Scotland. The graphs plot the same line graph
-                            that would be seen on the \"Individual region charts\" tab, 
-                            but omits the runchart features of median lines, shifts,
+                            that would be seen on the \"Individual area charts\" tab, 
+                            but omit the runchart features of median lines, shifts,
                             and trends as these additions make the graphs hard to 
                             read when in a comparison grid."),
                           
                           p("To view the graphs, first select which geography level
                             you wish to explore, and then select any number of health
                             boards / council areas from the drop-down list. When 
-                            you have selected every region you want, click the Update
+                            you have selected every area you want, click the Update
                             View button and the graphs will be generated and displayed
-                            in a grid. As with the \"Individual region charts\" tab, the 
+                            in a grid. As with the \"Individual area charts\" tab, the 
                             selection criteria in the sidebar will be applied when 
-                            creating these graphs - but are only applied once the 
-                            Update View button is pressed."),
+                            creating these graphs - but are",
+                            tags$b("only applied once the Update View button is pressed.")
+                            ),
                           
-                          p("Please be aware that with many regions selected at once 
+                          p("Please be aware that with many areas selected at once 
                             the dashboard may be slow to produce all of the graphs 
-                            for these regions. "),
+                            for these areas. "),
+                          
+                          p("It is possible that some variations in the statistics 
+                            for different health boards or council areas will be 
+                            due to differences in practice in these areas. Please 
+                            keep this in mind when using this page to compare different 
+                            areas."),
                           
                           br(),
-                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y")),
+                          p("Data Source:",
+                            tags$a(
+                              href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
+                              tags$u("CHSP Pre-School"),
+                              class = "externallink", target = "_blank")
+                          )
                           
                           )
                     ) #fluidRow
@@ -523,21 +559,16 @@ feeding_about <- tabItem(
                           solidHeader = TRUE
                       ),
                       
-                      box(title = "Data source and definitions",
+                      box(title = "Definitions",
                           width = 6,
-                          p("Data Source:",
-                            tags$a(
-                              href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
-                              tags$u("CHSP Pre-School"),
-                              class = "externallink", target = "_blank")
-                            ),
-                          h3("Definitions"),
+                          
                           tags$div(HTML("<ul>
                 <li><strong>Exclusively breastfed</strong>: babies who have only
                 been fed breast milk in the 24 hours prior to review. Note that data
                 on whether babies have been <i>always</i> exclusively breastfed 
-                (i.e. since birth) is available in the annual PHS infant feeding
-                report.</li>
+                (i.e. since birth) is available in the annual PHS <a href = 
+                https://publichealthscotland.scot/publications/infant-feeding-statistics/infant-feeding-statistics-financial-year-2022-to-2023/ 
+                target=\"_blank\"><u>infant feeding</u></a> report.</li>
 
                 <li><strong>Overall breastfed</strong>: babies who have been fed 
                 breast milk only, and those who have been fed both breast milk and
@@ -591,8 +622,8 @@ development_charts <- tabItem(
            width = 12,
            height = "25px",
 
-           ###Individual region charts ----
-           tabPanel(title = "Individual region charts",
+           ###Individual area charts ----
+           tabPanel(title = "Individual area charts",
                     
                     fluidRow(
                       box(width = 5, solidHeader = TRUE,
@@ -602,7 +633,7 @@ development_charts <- tabItem(
                           uiOutput("geog_select_development") #widget to select HB / CA
                       ),
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "development_download",  #currently not operational
+                          downloadButton(outputId = "development_download",
                                          label = "Download child development data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                           )
@@ -621,24 +652,31 @@ development_charts <- tabItem(
                           Run charts use a series of rules to help identify unusual 
                           behaviour in data and indicate patterns that merit further 
                           investigation. Read more about the rules used in the charts
-                          in the \"How we identify trends in the data\" section of 
-                          the Home page"),
+                          in the \"How we identify patterns in the data\" section of 
+                          the Home page."),
                           
-                          p("To provide a basis for identifying patterns in the data,
-                          the chart above uses a solid horizontal line to show the 
-                          average (median) percentage of children who are recorded
-                          as breastfed over the pre-pandemic time period. This line 
-                          is dashed where the median is projected outside that time 
-                          range. Points on the line which are part of a shift of 
-                          6 or more consecutive points above or below the centreline 
-                          are denoted with a star symbol. Where there are 5 or more
-                          consecutively increasing or decreasing points, a semi-transparent 
-                          shadow appears over the original line."),
+                          p("The runchart uses a solid horizontal line to show the 
+                            average (median) percentage of children with 1 or more
+                            developmental concerns over the pre-pandemic time period. 
+                            This line is dashed where the median is projected outside
+                            that time range."),
+                          
+                          p("Where there is a shift of 6 or more consecutive points 
+                            above or below the median line, the median is marked with 
+                            arrows pointing up or down to denote this shift. The 
+                            arrows are placed on the opposite side of the median 
+                            to ensure they do not overlap with the original 
+                            line. Where there are 5 or more consecutively increasing
+                            or decreasing points, a semi-transparent shadow appears 
+                            over the original line."),
                           
                           p("Lastly, the line graph below shows the same measure 
                             as above, but gives the total numbers for these points 
                             rather than percentages. This plot also shows the total 
-                            number of reviews and meaningful reviews for each quarter.")
+                            number of reviews and meaningful reviews for each quarter. Note
+                            that the line for meaningful reviews may overlap with the 
+                            line for total number of reviews when close to 100% of 
+                            reviews are meaningful.")
                       ),
                       
                       box(width = 12,
@@ -647,20 +685,26 @@ development_charts <- tabItem(
                           ),
                       
                       box(width = 12, solidHeader = TRUE,
-                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y")),
+                          p("Data Source:",
+                            tags$a(
+                              href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
+                              tags$u("CHSP Pre-School"),
+                              class = "externallink", target = "_blank")
+                          )
                           )
                     ) #fluidRow
            ), #tabPanel
            
            
            
-           ###Regional comparisons ----
-           tabPanel(title = "Regional comparisons",
+           ###Area comparisons ----
+           tabPanel(title = "Area comparisons",
                     fluidRow(
-                      box(width = 4, solidHeader = TRUE,
+                      box(width = 3, solidHeader = TRUE,
                           uiOutput("geog_comparison_level_select_development") #widget to select geography level
                       ),
-                      box(width = 6, solidHeader = TRUE,
+                      box(width = 4, solidHeader = TRUE,
                           uiOutput("geog_comparison_select_development") #widget to select HB / CA
                       ),
                       box(width = 2, solidHeader = TRUE,
@@ -669,7 +713,13 @@ development_charts <- tabItem(
                                        label = "Update View",
                                        class = "btn-lg"
                                        ) #comparison graph only updates when this button is pressed
-                      )
+                      ),
+                      box(width = 3, solidHeader = TRUE,
+                          downloadButton(outputId = "development_comparison_download",
+                                         label = "Download child development data",
+                                         icon = shiny::icon("download") |> rem_aria_label()
+                              )
+                          )
                     ), #fluidRow
                     
                     fluidRow(
@@ -683,25 +733,38 @@ development_charts <- tabItem(
                           p("This tab allows users to compare multiple health boards 
                             or council areas to each other, as well as to the total 
                             for all of Scotland. The graphs plot the same line graph
-                            that would be seen on the \"Individual region charts\" tab, 
-                            but omits the runchart features of median lines, shifts,
+                            that would be seen on the \"Individual area charts\" tab, 
+                            but omit the runchart features of median lines, shifts,
                             and trends as these additions make the graphs hard to 
                             read when in a comparison grid."),
                           
                           p("To view the graphs, first select which geography level
                             you wish to explore, and then select any number of health
                             boards / council areas from the drop-down list. When 
-                            you have selected every region you want, click the Update
+                            you have selected every area you want, click the Update
                             View button and the graphs will be generated and displayed
-                            in a grid. As with the \"Individual region charts\" tab, the 
+                            in a grid. As with the \"Individual area charts\" tab, the 
                             selection criteria in the sidebar will be applied when 
-                            creating these graphs - but are only applied once the 
-                            Update View button is pressed."),
+                            creating these graphs - but are ",
+                            tags$b("only applied once the Update View button is pressed.")
+                            ),
+                          
+                          p("It is possible that some variations in the statistics 
+                            for different health boards or council areas will be 
+                            due to differences in practice in these areas. Please 
+                            keep this in mind when using this page to compare different 
+                            areas."),
                           
                           br(),
-                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
-                          
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y")),
+                          p("Data Source:",
+                            tags$a(
+                              href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
+                              tags$u("CHSP Pre-School"),
+                              class = "externallink", target = "_blank")
                           )
+                          
+                          ) #box
                     ) #fluidRow
            ), #tabPanel
            
@@ -723,7 +786,7 @@ development_charts <- tabItem(
                       ),
                       
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "domains_download", #currently not operational
+                          downloadButton(outputId = "domains_download",
                                          label = "Download developmental domains data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                           )
@@ -739,29 +802,39 @@ development_charts <- tabItem(
                       box(width = 12, solidHeader = TRUE,
                           
                           p("The above plot is set up to display multiple lines at 
-                            once in a line graph comparing multiple catagories. When
-                            only one catagory is selected, this line graph becomes
-                            a runchart by adding a median line as well as shift and 
-                            trend information in line with what is described in the 
+                            once in a line graph comparing multiple categories. 
+                            When only one developmental domain is selected this
+                            line graph becomes a runchart. Runcharts use a series 
+                            of rules to help identify unusual behaviour in data and 
+                            indicate patterns that merit further investigation. You
+                            can read more about the rules used in run charts in the 
                             \"How we identify patterns in the data\" section of 
-                            the Home page. These runcharts help identify unusual 
-                            behaviour in data and indicate patterns that merit further 
-                            investigation."),
+                            the Home page."),
                           
-                          p("To provide a basis for identifying patterns in the data,
-                          the chart above uses a solid horizontal line to show the 
-                          average (median) percentage of children who are recorded
-                          as breastfed over the pre-pandemic time period. This line 
-                          is dashed where the median is projected outside that time 
-                          range. Points on the line which are part of a shift of 
-                          6 or more consecutive points above or below the centreline 
-                          are denoted with a star symbol. Where there are 5 or more
-                          consecutively increasing or decreasing points, a semi-transparent 
-                          shadow appears over the original line."),
+                          p("When the chart above is a run chart, the chart uses 
+                            a solid horizontal line to show the average (median) 
+                            percentage of children with a new or previous concern 
+                            over the pre-pandemic time period. This line is dashed 
+                            where the median is projected outside that time range."),
+                          
+                          p("Where there is a shift of 6 or more consecutive points 
+                            above or below the median line, the median is marked with 
+                            arrows pointing up or down to denote this shift. The 
+                            arrows are placed on the opposite side of the median 
+                            to ensure they do not overlap with the original 
+                            line. Where there are 5 or more consecutively increasing
+                            or decreasing points, a semi-transparent shadow appears 
+                            over the original line."),
                           
                           br(),
-                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
-                      )
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y")),
+                          p("Data Source:",
+                            tags$a(
+                              href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
+                              tags$u("CHSP Pre-School"),
+                              class = "externallink", target = "_blank")
+                          )
+                      ) #box
                     ) #fluidRow
            ), #tabPanel
            
@@ -783,7 +856,7 @@ development_charts <- tabItem(
                       ),
                       
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "simd_download", #currently not operational
+                          downloadButton(outputId = "simd_download",
                                          label = "Download SIMD data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                                          ) 
@@ -799,28 +872,38 @@ development_charts <- tabItem(
                       box(width = 12, solidHeader = TRUE,
                           
                           p("The above plot is set up to display multiple lines at 
-                            once in a line graph comparing multiple catagories. When
-                            only one catagory is selected, this line graph becomes
-                            a runchart by adding a median line as well as shift and 
-                            trend information in line with what is described in the 
+                            once in a line graph comparing multiple categories. 
+                            When only one SIMD quintile is selected this
+                            line graph becomes a runchart. Runcharts use a series 
+                            of rules to help identify unusual behaviour in data and 
+                            indicate patterns that merit further investigation. You
+                            can read more about the rules used in run charts in the 
                             \"How we identify patterns in the data\" section of 
-                            the Home page. These runcharts help identify unusual 
-                            behaviour in data and indicate patterns that merit further 
-                            investigation."),
+                            the Home page."),
                           
-                          p("To provide a basis for identifying patterns in the data,
-                          the chart above uses a solid horizontal line to show the 
-                          average (median) percentage of children who are recorded
-                          as breastfed over the pre-pandemic time period. This line 
-                          is dashed where the median is projected outside that time 
-                          range. Points on the line which are part of a shift of 
-                          6 or more consecutive points above or below the centreline 
-                          are denoted with a star symbol. Where there are 5 or more
-                          consecutively increasing or decreasing points, a semi-transparent 
-                          shadow appears over the original line."),
+                          p("When the chart above is a run chart, the chart uses 
+                            a solid horizontal line to show the average (median) 
+                            percentage of children with 1 or more developmental concerns 
+                            over the pre-pandemic time period. This line is dashed 
+                            where the median is projected outside that time range."),
+                          
+                          p("Where there is a shift of 6 or more consecutive points 
+                            above or below the median line, the median is marked with 
+                            arrows pointing up or down to denote this shift. The 
+                            arrows are placed on the opposite side of the median 
+                            to ensure they do not overlap with the original 
+                            line. Where there are 5 or more consecutively increasing
+                            or decreasing points, a semi-transparent shadow appears 
+                            over the original line."),
                           
                           br(),
-                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y"))
+                          p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y")),
+                          p("Data Source:",
+                            tags$a(
+                              href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
+                              tags$u("CHSP Pre-School"),
+                              class = "externallink", target = "_blank")
+                          )
                           
                       ) #box
                     ) #fluidRow
@@ -875,19 +958,11 @@ development_about <- tabItem(
                           solidHeader = TRUE
                       ),
                       
-                      box(title = "Data source and definitions",
+                      box(title = "Definitions",
                           width = 6,
-                          p("Data Source:",
-                            tags$a(
-                              href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
-                              tags$u("CHSP Pre-School"),
-                              class = "externallink", target = "_blank")
-                          ),
-                          
-                          h3("Definitions"),
                           tags$div(HTML("<ul>
                           
-                <li><strong>One or more developmental concern</strong>: this refers
+                <li><strong>One or more developmental concerns</strong>: this refers
                 to those children who have a new or previously identified concern 
                 recorded for one or more of the eight developmental domains assessed
                 at that review. </li>
@@ -924,7 +999,7 @@ development_about <- tabItem(
                 
                 <li><strong>Time</strong>: data is reported by the date at which
                 the review was conducted (“review date data”). Note that this is
-                different from the approach taken in the annual PHS infant feeding 
+                different from the approach taken in the annual PHS early child development 
                 report, which reports information for children according to the date
                 at which a group of children become eligible for each review (“cohort 
                 data”).  </li>
@@ -991,4 +1066,4 @@ tagList( #needed for shinyjs
     sidebar,
     body
   ) # dashboardPage
-) #|> secure_app() #comment out to remove authentication
+) |> secure_app() #comment out to remove authentication
