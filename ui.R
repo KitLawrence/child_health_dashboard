@@ -201,7 +201,7 @@ home <- tabItem(
                       
                       
                       box(width = 12, #solidHeader = TRUE, 
-                          collapsible = TRUE, collapsed = TRUE, #status = "primary",
+                          collapsible = TRUE, collapsed = FALSE, #status = "primary",
                           title = p(strong("Tell us what you think")),
                           
                           p("The version of the dashboard available today is still 
@@ -322,7 +322,12 @@ home <- tabItem(
                      children that should be offered a review in a given period 
                      (“cohort data”). By contrast, this dashboard shows data by the
                      date those children who were reviewed received that review 
-                     (“review date data”)."
+                     (“review date data”). The reason for this is that reporting 
+                     by review date is more timely whereas the cohort data in the
+                     annual official statistics publications allows reporting on 
+                     coverage (the percentage of children who have had each review)
+                     and in order to do this require the denominator to be all children
+                     of eligible age." 
                      )
                    
                    ) #box
@@ -597,7 +602,11 @@ feeding_about <- tabItem(
                 different from the approach taken in the annual PHS infant feeding 
                 report, which reports information for children according to the date 
                 at which a group of children become eligible  for each review (“cohort
-                data”).</li>
+                data”). The reason for this is that reporting by review date is more 
+                timely whereas the cohort data in the annual official statistics
+                publications allows reporting on coverage (the percentage of children
+                who have had each review) and in order to do this require the denominator
+                to be all children of eligible age.</li>
 
 
                 </ul>"))
@@ -749,11 +758,12 @@ development_charts <- tabItem(
                             tags$b("only applied once the Update View button is pressed.")
                             ),
                           
-                          p("It is possible that some variations in the statistics 
-                            for different health boards or council areas will be 
-                            due to differences in practice in these areas. Please 
-                            keep this in mind when using this page to compare different 
-                            areas."),
+                          p("There are differences between areas in the level of 
+                            developmental concerns recorded across early childhood. 
+                            To some extent this is likely to be due to differences
+                            in practice by area, and indicates the potential to continue
+                            to work towards greater consistency in assessment and 
+                            recording."),
                           
                           br(),
                           p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y")),
@@ -987,22 +997,22 @@ development_about <- tabItem(
                 <li><strong>Average</strong>: in these charts ‘average’ refers to
                 median value of the period specified. </li>
                 
-                <li><strong>Geography</strong>: data is reported by the Health Board
+                <li><strong>Geography</strong>: data is reported by the Health Board 
                 and Council Area of residence recorded at the time of review. Note 
                 that the date of implementation of the 13-15 month and 4-5 year review 
-                varies by Health Board, and therefore the start date of time series 
-                data may vary. For example, the 13-15 month review has been offered
-                in NHS Greater Glasgow and Clyde since May 2019, therefore no data 
-                are shown for this area for Jan-Apr 2019. This also influences the
-                period of data available to calculate the median value used in the 
-                run charts. </li>
+                varies by Health Board, so the number of reviews may be lower in 
+                the earliest periods in some boards, which will affect the rates. </li>
                 
                 <li><strong>Time</strong>: data is reported by the date at which
                 the review was conducted (“review date data”). Note that this is
                 different from the approach taken in the annual PHS early child development 
                 report, which reports information for children according to the date
                 at which a group of children become eligible for each review (“cohort 
-                data”).  </li>
+                data”). The reason for this is that reporting by review date is more 
+                timely whereas the cohort data in the annual official statistics
+                publications allows reporting on coverage (the percentage of children 
+                who have had each review) and in order to do this require the denominator
+                to be all children of eligible age.  </li>
 
 
                 </ul>")),

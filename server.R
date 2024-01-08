@@ -831,7 +831,7 @@ function(input, output, session) {
                                        width = 1), 
                            marker = list(color = "#9B4393",#phs-magenta
                                          size = 3),
-                           text = ~ paste0("<b>", .$geography, "</b>",
+                           text = paste0("<b>", .$geography, "</b>",
                                            "<br>% of reviews: ", round(.$measure, 2), "%",
                                            "<br>Quarter of review: ", 
                                            month(.$date, label = TRUE), "-", month(.$date + 62, label = TRUE),
