@@ -2,16 +2,6 @@
 
 function(input, output, session) {
   
-    #these two elements create the dashboard authentication 
-    res_auth <- secure_server(
-      check_credentials = check_credentials(credentials)
-    )
-    
-    output$auth_output <- renderPrint({
-      reactiveValuesToList(res_auth)
-    })
-  
-  
   #Geography Control ----
   #takes geography level choice from infant feeding tab
   output$geog_level_select_feeding <- renderUI({
@@ -1227,14 +1217,14 @@ function(input, output, session) {
   
   
   #.----
-  # Testing! ----
+  # Testing ----
   # little sidebar dev app to display variables for testing
-  # output$testing <- renderPrint({
-  #   str_view(c(paste0("A ", input$update_feeding_comparison),
-  #              paste0("B ", input$update_development_comparison),
-  #              paste0("C ", selected$update)
-  #   ))
-  # })
+  output$testing <- renderPrint({
+    str_view(c(paste0("A ", input$sidebarMenu),
+               paste0("B ", input$home_tab),
+               paste0("C ", input$feeding_charts_tab)
+    ))
+  })
   
   
   

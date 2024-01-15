@@ -30,9 +30,6 @@ library(fresh)
 #all functions used in dashboard
 source("functions.R")
 
-#credentials for login
-credentials <- readRDS("admin/credentials.rds")
-
 
 #reference lists ----
 #list of health boards

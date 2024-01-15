@@ -16,7 +16,7 @@ header <- dashboardHeader(
   title = dashboardtitle,
   titleWidth = 290,
   tags$li(class = "dropdown",
-          tags$p("Health in the Early Years in Scotland (HEYS) Dashboard v0.2")
+          tags$p("Health in the Early Years in Scotland (HEYS) Dashboard v1.0")
   )
 )
 
@@ -71,8 +71,7 @@ sidebar <- dashboardSidebar(
   uiOutput("development_data_select"),
   
   
-  #three invisible widgets which initialise variables which would otherwise start empty
-  hidden(textInput(inputId = "sidebarMenu", label = "", value = "home")),
+  #two invisible widgets which initialise variables which would otherwise start empty
   uiOutput("feeding_data_initialise"),
   uiOutput("development_data_initialise"),
   
@@ -108,13 +107,14 @@ home <- tabItem(
                                    that children received their review. For more 
                                    information on the data source and other publications
                                    on child health outcomes, see the ‘Background’ tab.")
-                          ),
+                          ), #box
                     
                       p("Click +/- to open and close the sections below", 
                         style = "text-align: right;"),
                       
-                      box(width = 12, #solidHeader = TRUE, 
-                          collapsible = TRUE, collapsed = TRUE, #status = "primary",
+                      #boxes with collapsible=TRUE below make the sections on the homepage collapsible
+                      box(width = 12,
+                          collapsible = TRUE, collapsed = TRUE,
                           title = p(strong("Selecting which measure you are interested in")),
                         
                           p("Click on the measure you are interested in via the sidebar
@@ -127,14 +127,13 @@ home <- tabItem(
                             clicking on this toggle button",
                             tags$imag(src = "sidebar_toggle.png",
                                       alt = "Sidebar toggle image"),
-                                      #size = "60%"),
                             "at the top of the screen. This can be useful if you 
                             are viewing charts on a small computer screen.")
-                          ) |> rem_button_aria_label(),
+                          ) |> rem_button_aria_label(), #function to remove unnecessary aria label on collapsible box
                       
                       
-                      box(width = 12, #solidHeader = TRUE, 
-                          collapsible = TRUE, collapsed = TRUE, #status = "primary",
+                      box(width = 12, 
+                          collapsible = TRUE, collapsed = TRUE,
                           title = p(strong("Infant feeding details")),
                           
                           p("Within the infant feeding page, select from the options 
@@ -146,11 +145,11 @@ home <- tabItem(
                             breastfed’ (including mixed feeding), and currently ‘Exclusively 
                             breastfed’. More information about definitions is available 
                             in the “About this indicator” section.")
-                      ) |> rem_button_aria_label(),
+                      ) |> rem_button_aria_label(), #function to remove unnecessary aria label on collapsible box
                              
                       
-                      box(width = 12, #solidHeader = TRUE, 
-                          collapsible = TRUE, collapsed = TRUE, #status = "primary",
+                      box(width = 12, 
+                          collapsible = TRUE, collapsed = TRUE, 
                           title = p(strong("Child development details")),
                           
                           p("Within the child development page, select from the options
@@ -162,11 +161,11 @@ home <- tabItem(
                             or SIMD quintiles you wish to see in these charts by 
                             checking the relevant boxes. More information about definitions
                             is available in the “About this indicator” section.")
-                      ) |> rem_button_aria_label(),
+                      ) |> rem_button_aria_label(), #function to remove unnecessary aria label on collapsible box
                       
                       
-                      box(width = 12, #solidHeader = TRUE, 
-                          collapsible = TRUE, collapsed = TRUE, #status = "primary",
+                      box(width = 12,
+                          collapsible = TRUE, collapsed = TRUE,
                           title = p(strong("Run charts to show shifts and trends in the data")),
                           
                           p("Data over time are shown as run charts to help indicate
@@ -174,11 +173,11 @@ home <- tabItem(
                             and trends is only shown when a single measure is selected 
                             in a given chart. For more information see the “How we 
                             identify patterns in the data” tab.")
-                      ) |> rem_button_aria_label(),
+                      ) |> rem_button_aria_label(), #function to remove unnecessary aria label on collapsible box
                       
                       
-                      box(width = 12, #solidHeader = TRUE, 
-                          collapsible = TRUE, collapsed = TRUE, #status = "primary",
+                      box(width = 12,
+                          collapsible = TRUE, collapsed = TRUE,
                           title = p(strong("Copying charts and downloading the data")),
                           
                           p("To make a copy of any content it is recommended that 
@@ -197,11 +196,11 @@ home <- tabItem(
                             options you have selected. The information can then be
                             manipulated in Excel to show the aspects of interest 
                             to you, for example using ‘filter’ or ‘pivot table’ options.")
-                      ) |> rem_button_aria_label(),
+                      ) |> rem_button_aria_label(), #function to remove unnecessary aria label on collapsible box
                       
                       
-                      box(width = 12, #solidHeader = TRUE, 
-                          collapsible = TRUE, collapsed = FALSE, #status = "primary",
+                      box(width = 12, 
+                          collapsible = TRUE, collapsed = TRUE,
                           title = p(strong("Tell us what you think")),
                           
                           p("The version of the dashboard available today is still 
@@ -212,7 +211,7 @@ home <- tabItem(
                               tags$u("phs.childhealthstats@phs.scot"),
                               class = "externallink", target = "_blank"),
                             " for more information or to provide feedback.")
-                      ) |> rem_button_aria_label()
+                      ) |> rem_button_aria_label() #function to remove unnecessary aria label on collapsible box
                       
                       
                     ) #fluidRow
@@ -222,7 +221,9 @@ home <- tabItem(
            tabPanel(title = "How we identify patterns in the data",
                     fluidRow(box(width = 12,
                                  solidHeader = TRUE,
+                                 
                                  h1("How we identify patterns in the data"),
+                                 
                                  p(strong("Run charts"), "have been used to show 
                                    data over time for the measures in this dashboard.
                                    Run charts use a series of rules to help identify 
@@ -231,12 +232,13 @@ home <- tabItem(
                                    in a given chart, to avoid the charts being ‘cluttered’ 
                                    when multiple measures are shown. These are the 
                                    rules that have been applied to these charts:"
-                                 ),
+                                   ),
                                  
+                                 #writing bullet point list in HTML to make it display properly
                                  tags$div(HTML("<ul>
                 <li><strong>Shifts:</strong> Six or more consecutive data points above or below
-                            the centreline. Points on the centreline neither break nor contribute
-                            to a shift (such points are marked with arrows along the median on charts). </li>
+                the centreline. Points on the centreline neither break nor contribute
+                to a shift (such points are marked with arrows along the median on charts). </li>
 
                 <li><strong>Trends:</strong> Five or more consecutive data points which are
                 increasing or decreasing. An observation that is the same as the preceding value
@@ -256,14 +258,14 @@ home <- tabItem(
                 </ul>")),
                                  
                                  p("Further information on these methods of presenting data can be found in this ",
-                                   
                                    tags$a(
                                      href =  "https://www.isdscotland.org/health-topics/quality-indicators/statistical-process-control/_docs/Statistical-Process-Control-Tutorial-Guide-180713.pdf",
                                      tags$u("guide to statistical process control charts."),
                                      class = "externallink", target = "_blank"
                                    )
                                  )
-                    ))
+                                 
+                    )) #box, fluidRow
            ), #tabPanel("How we identify patterns in the data")
            
            ###Background ----
@@ -342,23 +344,23 @@ home <- tabItem(
                    
                    h1("Version information"),
                    
-                   p("v0.1 release date: 30 November 2023.",
+                   p("v1.0 release date: 16 January 2024.",
                    tags$br(),
                    "v0.2 release date: 21 December 2023.",
                    tags$br(),
-                   "Planned 1.0 release date: 16 January 2024."),
+                   "v0.1 release date: 30 November 2023."),
                    
                    br(),
                    p("This dashboard is scheduled to update with new data once per quarter.",
                    "Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y") |> paste0("."))
                    
-                   )
-             )
+                   ) #box
+             ) #fluidRow
            ) #tabPanel ("Version")
            
     )# tabBox ("Home")
   ) #fluidRow
-)
+) #tabItem
 
 
 
@@ -378,23 +380,23 @@ feeding_charts <- tabItem(
                     fluidRow(
                       box(width = 5, solidHeader = TRUE,
                           uiOutput("geog_level_select_feeding") #widget to select geography level
-                      ),
+                          ),
                       box(width = 4, solidHeader = TRUE,
                           uiOutput("geog_select_feeding") #widget to select HB / CA
-                      ),
+                          ),
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "feeding_download",
+                          downloadButton(outputId = "feeding_download", #button to download data
                                          label = "Download infant feeding data",
                                          icon = shiny::icon("download") |> rem_aria_label()
-                          ) 
-                      )
+                                         )
+                          ) #box
                     ), #fluidRow
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("feeding_perc_title"), style = "text-align: center;"),
                           loading(plotlyOutput("feeding_perc_plotly", height = "300px"))
-                      ),
+                          ),
                       
                       box(width = 12, solidHeader = TRUE,
                           
@@ -437,7 +439,7 @@ feeding_charts <- tabItem(
                       box(width = 12,
                           h4(textOutput("feeding_numbers_title"), style = "text-align: center;"),
                           loading(plotlyOutput("feeding_numbers_plotly", height = "300px"))
-                      ),
+                          ),
                       
                       box(width = 12, solidHeader = TRUE,
                           p("Data last refreshed on", extract_date |> dmy() |> format("%d %B %Y")),
@@ -445,9 +447,10 @@ feeding_charts <- tabItem(
                             tags$a(
                               href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
                               tags$u("CHSP Pre-School"),
-                              class = "externallink", target = "_blank")
-                          )
-                      )
+                              class = "externallink", target = "_blank"
+                              ) #tags$a
+                            ) #p
+                          ) #box
                     ) #fluidRow
            ), #tabPanel
            
@@ -465,17 +468,17 @@ feeding_charts <- tabItem(
                       ),
                       box(width = 2, solidHeader = TRUE,
                           br(),
-                          actionButton(inputId = "update_feeding_comparison",
+                          actionButton(inputId = "update_feeding_comparison", #button to update the plot on this tab
                                        label = "Update View",
                                        class = "btn-lg"
                                        ) #comparison graph only updates when this button is pressed
-                          ),
+                          ), #box
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "feeding_comparison_download",
+                          downloadButton(outputId = "feeding_comparison_download", #button to download data
                                          label = "Download infant feeding data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                                          )
-                          )
+                          ) #box
                     ), #fluidRow
                     
                     fluidRow(
@@ -522,9 +525,9 @@ feeding_charts <- tabItem(
                               href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
                               tags$u("CHSP Pre-School"),
                               class = "externallink", target = "_blank")
-                          )
+                            ) #p
                           
-                          )
+                          ) #box
                     ) #fluidRow
            ) #tabPanel
     ) # tabBox
@@ -560,14 +563,13 @@ feeding_about <- tabItem(
                             are provided in the “Data source and definitions” column.")
                       ), #box
                       
-                      box(width = 1,
-                          solidHeader = TRUE
-                      ),
+                      box(width = 1, solidHeader = TRUE),
                       
                       box(title = "Definitions",
                           width = 6,
-                          
+                          #writing bullet point list in HTML to make it display properly
                           tags$div(HTML("<ul>
+                          
                 <li><strong>Exclusively breastfed</strong>: babies who have only
                 been fed breast milk in the 24 hours prior to review. Note that data
                 on whether babies have been <i>always</i> exclusively breastfed 
@@ -609,7 +611,7 @@ feeding_about <- tabItem(
                 to be all children of eligible age.</li>
 
 
-                </ul>"))
+                </ul>")) #HTML, tags$div 
                           
                       ) #box
                     ) #fluidRow
@@ -637,23 +639,23 @@ development_charts <- tabItem(
                     fluidRow(
                       box(width = 5, solidHeader = TRUE,
                           uiOutput("geog_level_select_development") #widget to select geography level
-                      ),
+                          ),
                       box(width = 4, solidHeader = TRUE,
                           uiOutput("geog_select_development") #widget to select HB / CA
-                      ),
+                          ),
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "development_download",
+                          downloadButton(outputId = "development_download", #button to download data
                                          label = "Download child development data",
                                          icon = shiny::icon("download") |> rem_aria_label()
-                          )
-                      ) 
+                                         )
+                          ) #box
                     ), #fluidRow
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_percentage_concern_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_percentage_concern_plotly", height = "300px"))
-                      ),
+                          ),
                       
                       box(width = 12, solidHeader = TRUE,
                           
@@ -686,7 +688,7 @@ development_charts <- tabItem(
                             that the line for meaningful reviews may overlap with the 
                             line for total number of reviews when close to 100% of 
                             reviews are meaningful.")
-                      ),
+                          ), #box
                       
                       box(width = 12,
                           h4(textOutput("development_numbers_title"), style = "text-align: center;"),
@@ -700,8 +702,8 @@ development_charts <- tabItem(
                               href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
                               tags$u("CHSP Pre-School"),
                               class = "externallink", target = "_blank")
-                          )
-                          )
+                            ) #p
+                          ) #box
                     ) #fluidRow
            ), #tabPanel
            
@@ -718,24 +720,24 @@ development_charts <- tabItem(
                       ),
                       box(width = 2, solidHeader = TRUE,
                           br(),
-                          actionButton(inputId = "update_development_comparison",
+                          actionButton(inputId = "update_development_comparison", #button to update plot
                                        label = "Update View",
                                        class = "btn-lg"
                                        ) #comparison graph only updates when this button is pressed
                       ),
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "development_comparison_download",
+                          downloadButton(outputId = "development_comparison_download", #button to download data
                                          label = "Download child development data",
                                          icon = shiny::icon("download") |> rem_aria_label()
-                              )
-                          )
+                                         )
+                          ) #box
                     ), #fluidRow
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_comparison_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_comparison_plotly", height = "600px")),
-                      ),
+                          ),
                       
                       box(width = 12, solidHeader = TRUE,
 
@@ -772,8 +774,7 @@ development_charts <- tabItem(
                               href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
                               tags$u("CHSP Pre-School"),
                               class = "externallink", target = "_blank")
-                          )
-                          
+                            ) #p
                           ) #box
                     ) #fluidRow
            ), #tabPanel
@@ -789,25 +790,26 @@ development_charts <- tabItem(
                       
                       box(width = 2, solidHeader = TRUE,
                           br(),
+                          #buttons to select/deselect all domains
                           actionButton(inputId = "select_all_domains",
                                        label = "Select all"),
                           actionButton(inputId = "deselect_all_domains",
                                        label = "Deselect all")
-                      ),
+                          ), #box
                       
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "domains_download",
+                          downloadButton(outputId = "domains_download", #button to download data
                                          label = "Download developmental domains data",
                                          icon = shiny::icon("download") |> rem_aria_label()
-                          )
-                      )
+                                         )
+                          ) #box
                     ), #fluidRow
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_concerns_by_domain_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_concerns_by_domain_plotly", height = "300px"))
-                      ),
+                          ),
                       
                       box(width = 12, solidHeader = TRUE,
                           
@@ -843,8 +845,8 @@ development_charts <- tabItem(
                               href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
                               tags$u("CHSP Pre-School"),
                               class = "externallink", target = "_blank")
-                          )
-                      ) #box
+                            ) #p
+                          ) #box
                     ) #fluidRow
            ), #tabPanel
            
@@ -859,25 +861,26 @@ development_charts <- tabItem(
                       
                       box(width = 2, solidHeader = TRUE,
                           br(),
+                          #buttons to select/deselect all domains
                           actionButton(inputId = "select_all_simd",
                                        label = "Select all"),
                           actionButton(inputId = "deselect_all_simd",
                                        label = "Deselect all")
-                      ),
+                          ), #box
                       
                       box(width = 3, solidHeader = TRUE,
-                          downloadButton(outputId = "simd_download",
+                          downloadButton(outputId = "simd_download", #button to download data
                                          label = "Download SIMD data",
                                          icon = shiny::icon("download") |> rem_aria_label()
                                          ) 
-                          )
+                          ) #box
                     ), #fluidRow
                     
                     fluidRow(
                       box(width = 12, solidHeader = TRUE,
                           h4(textOutput("development_concerns_by_simd_title"), style = "text-align: center;"),
                           loading(plotlyOutput("development_concerns_by_simd_plotly", height = "300px"))
-                      ),
+                          ),
                       
                       box(width = 12, solidHeader = TRUE,
                           
@@ -913,10 +916,9 @@ development_charts <- tabItem(
                               href = "https://publichealthscotland.scot/our-areas-of-work/early-years-and-young-people/child-health-data-and-intelligence/child-health-programme/pre-school-system/",
                               tags$u("CHSP Pre-School"),
                               class = "externallink", target = "_blank")
-                          )
-                          
-                      ) #box
-                    ) #fluidRow
+                            ) #p
+                          ) #box
+                      ) #fluidRow
            ) #tabPanel
     ) # tabBox 
   ) #fluidRow
@@ -964,12 +966,11 @@ development_about <- tabItem(
                             of the child’s development.")
                       ), #box
                       
-                      box(width = 1,
-                          solidHeader = TRUE
-                      ),
+                      box(width = 1, solidHeader = TRUE),
                       
                       box(title = "Definitions",
                           width = 6,
+                          #writing bullet point list in HTML to make it display properly
                           tags$div(HTML("<ul>
                           
                 <li><strong>One or more developmental concerns</strong>: this refers
@@ -1015,7 +1016,7 @@ development_about <- tabItem(
                 to be all children of eligible age.  </li>
 
 
-                </ul>")),
+                </ul>")), #HTML, tags$div
                           
                       ) #box
                     ) #fluidRow
@@ -1064,11 +1065,6 @@ tagList( #needed for shinyjs
                       href="favicon_phs.ico"), # Icon for browser tab
             tags$title("HEYS Dashboard")
   ),
-  # Including Google analytics
-  # includeScript("google-analytics.js")),
-  
-  #tool for assessing accessibility, uncomment to use
-  #    use_tota11y(),
   
   #pull together the elements created above
   dashboardPage(
@@ -1076,4 +1072,4 @@ tagList( #needed for shinyjs
     sidebar,
     body
   ) # dashboardPage
-) |> secure_app() #comment out to remove authentication
+)
