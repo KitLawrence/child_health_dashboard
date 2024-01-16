@@ -1219,12 +1219,12 @@ function(input, output, session) {
   #.----
   # Testing ----
   # little sidebar dev app to display variables for testing
-  output$testing <- renderPrint({
-    str_view(c(paste0("A ", input$sidebarMenu),
-               paste0("B ", input$home_tab),
-               paste0("C ", input$feeding_charts_tab)
-    ))
-  })
+  # output$testing <- renderPrint({
+  #   str_view(c(paste0("A ", input$sidebarMenu),
+  #              paste0("B ", input$home_tab),
+  #              paste0("C ", input$feeding_charts_tab)
+  #   ))
+  # })
   
   
   
