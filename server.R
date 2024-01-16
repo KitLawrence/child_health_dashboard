@@ -120,7 +120,7 @@ function(input, output, session) {
   #initialise the "selected" variables
   selected <- reactiveValues(geog_level = "All Scotland",
                              geog_comparison_level = "Health Board",
-                             geog_comparison_list = HBnames,
+                             geog_comparison_list = c("All Scotland", HBnames),
                              domains = domains,
                              simd = c(1,5),
                              update = 1)
